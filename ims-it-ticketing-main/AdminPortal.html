@@ -1,0 +1,1484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IMS IT Admin Portal</title>
+  <script src="https://cdn.jsdelivr.net/npm/exceljs/dist/exceljs.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js" defer></script>
+  <script src="ticket-modal.js"></script>
+  <style>
+    :root {
+      --bg: #eef2f7;
+      --panel: #ffffff;
+      --panel-soft: #f8fafc;
+      --text: #172033;
+      --muted: #64748b;
+      --line: #d9e2ee;
+      --primary: #1f6feb;
+      --primary-dark: #1959bd;
+      --success: #0f8a5f;
+      --danger: #c2410c;
+      --shadow: 0 20px 60px rgba(28, 39, 64, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Inter, "Segoe UI", Arial, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(31, 111, 235, 0.11), transparent 32rem),
+        linear-gradient(180deg, #f8fbff 0%, var(--bg) 100%);
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      min-height: 62px;
+      padding: 0 20px;
+      border-bottom: 1px solid rgba(217, 226, 238, 0.9);
+      background: rgba(255, 255, 255, 0.86);
+      backdrop-filter: blur(14px);
+    }
+
+    .brand {
+      display: grid;
+      gap: 2px;
+    }
+
+    .brand strong {
+      font-size: 18px;
+      line-height: 1;
+    }
+
+    .brand span {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .top-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+
+    .app {
+      width: min(1280px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 32px 0;
+    }
+
+    .hero {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 22px;
+    }
+
+    .eyebrow {
+      margin: 0 0 8px;
+      color: var(--primary);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(32px, 5vw, 54px);
+      line-height: 1;
+      letter-spacing: 0;
+    }
+
+    .hero p {
+      max-width: 680px;
+      margin: 14px 0 0;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.65;
+    }
+
+    .panel {
+      background: rgba(255, 255, 255, 0.92);
+      border: 1px solid rgba(217, 226, 238, 0.9);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    .control-panel {
+      padding: 20px;
+    }
+
+    .panel-title {
+      margin: 0 0 14px;
+      font-size: 18px;
+      line-height: 1.25;
+    }
+
+    button,
+    .secondary-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 42px;
+      padding: 0 14px;
+      border: 0;
+      border-radius: 8px;
+      background: var(--primary);
+      color: #fff;
+      cursor: pointer;
+      font: inherit;
+      font-size: 14px;
+      font-weight: 800;
+      text-decoration: none;
+      transition: background 160ms ease, transform 160ms ease, opacity 160ms ease;
+    }
+
+    button:hover,
+    .secondary-button:hover {
+      background: var(--primary-dark);
+      transform: translateY(-1px);
+    }
+
+    .secondary-button {
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--text);
+    }
+
+    .secondary-button:hover {
+      border-color: var(--primary);
+      background: #eef5ff;
+      color: var(--primary);
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      min-height: 42px;
+      padding: 9px 11px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--text);
+      font: inherit;
+      font-size: 14px;
+    }
+
+    textarea {
+      min-height: 112px;
+      resize: vertical;
+      line-height: 1.5;
+    }
+
+    label.field {
+      display: grid;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .small-note {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .dashboard-cards {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .stat {
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel-soft);
+    }
+
+    .stat strong {
+      display: block;
+      font-size: 24px;
+      line-height: 1;
+    }
+
+    .stat span {
+      display: block;
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .portal-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    body.modal-open {
+      overflow: hidden;
+    }
+
+    .toolbar {
+      display: grid;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .search-toolbar {
+      display: flex;
+      align-items: stretch;
+      gap: 10px;
+    }
+
+    .search-field {
+      position: relative;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .search-field input {
+      min-height: 44px;
+      padding-left: 40px;
+      border-radius: 10px;
+      background: #fff;
+      box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.04);
+    }
+
+    .search-field input:focus {
+      outline: none;
+      border-color: rgba(31, 111, 235, 0.45);
+      box-shadow: 0 0 0 3px rgba(31, 111, 235, 0.12);
+    }
+
+    .search-field__icon {
+      position: absolute;
+      top: 50%;
+      left: 14px;
+      width: 16px;
+      height: 16px;
+      color: var(--muted);
+      transform: translateY(-50%);
+      pointer-events: none;
+    }
+
+    .filter-control {
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    .filter-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 44px;
+      padding: 0 14px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #fff;
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 800;
+      white-space: nowrap;
+      transform: none;
+    }
+
+    .filter-toggle:hover,
+    .filter-toggle.active {
+      border-color: rgba(31, 111, 235, 0.35);
+      background: #eef5ff;
+      color: var(--primary);
+      transform: none;
+    }
+
+    .filter-toggle__badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 22px;
+      padding: 0 8px;
+      border-radius: 999px;
+      background: rgba(31, 111, 235, 0.12);
+      color: var(--primary);
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .filters-panel {
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      z-index: 12;
+      width: min(420px, calc(100vw - 48px));
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fff;
+      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.14);
+    }
+
+    .filters-panel__title {
+      margin: 0 0 10px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .filters-panel[hidden] {
+      display: none;
+    }
+
+    .filters,
+    .report-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .filters button,
+    .report-actions button {
+      min-height: 38px;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--text);
+      font-size: 13px;
+    }
+
+    .filters button.active {
+      border-color: rgba(31, 111, 235, 0.28);
+      background: #eef5ff;
+      color: var(--primary);
+    }
+
+    .ticket-table-wrap {
+      overflow: auto;
+    }
+
+    table {
+      border-collapse: separate;
+      border-spacing: 0;
+      width: 100%;
+      min-width: 1020px;
+    }
+
+    th,
+    td {
+      border-bottom: 1px solid var(--line);
+      padding: 11px 12px;
+      font-size: 13px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      background: #f7faff;
+      color: #344256;
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .sort-header {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: auto;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      cursor: pointer;
+      transform: none;
+    }
+
+    .sort-header:hover,
+    .sort-header.active {
+      color: var(--primary);
+      background: transparent;
+      transform: none;
+    }
+
+    .sort-indicator {
+      display: inline-flex;
+      flex-direction: column;
+      gap: 1px;
+      color: var(--muted);
+      line-height: 1;
+    }
+
+    .sort-indicator svg {
+      width: 10px;
+      height: 10px;
+    }
+
+    .sort-header.active .sort-indicator {
+      color: var(--primary);
+    }
+
+    .sort-indicator__up,
+    .sort-indicator__down {
+      opacity: 0.25;
+    }
+
+    .sort-header[aria-sort="ascending"] .sort-indicator__up,
+    .sort-header[aria-sort="descending"] .sort-indicator__down {
+      opacity: 1;
+    }
+
+    tr:nth-child(even) td {
+      background: #fbfdff;
+    }
+
+    tbody tr {
+      cursor: pointer;
+    }
+
+    tbody tr:hover td {
+      background: #eef5ff;
+    }
+
+    tbody tr.selected td {
+      background: #dbeafe;
+    }
+
+    tbody tr.selected:hover td {
+      background: #bfdbfe;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      padding: 0 8px;
+      border-radius: 999px;
+      background: #eef2f7;
+      color: var(--text);
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .badge.priority-critical,
+    .badge.priority-high {
+      background: #fff7ed;
+      color: #9a3412;
+    }
+
+    .badge.status-resolved,
+    .badge.status-closed {
+      background: #f0fdf7;
+      color: var(--success);
+    }
+
+    .badge.status-pending,
+    .badge.status-cancelled {
+      background: #fff7ed;
+      color: var(--danger);
+    }
+
+    /* Ticket modal */
+    .ticket-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .ticket-modal[hidden] {
+      display: none;
+    }
+
+    .ticket-modal-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.52);
+      backdrop-filter: blur(4px);
+    }
+
+    .ticket-modal-dialog {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      width: min(1150px, 100%);
+      max-height: min(92vh, 900px);
+      border: 1px solid rgba(217, 226, 238, 0.95);
+      border-radius: 12px;
+      background: var(--panel);
+      box-shadow: 0 28px 80px rgba(15, 23, 42, 0.22);
+      overflow: hidden;
+    }
+
+    .ticket-modal-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 22px 24px 18px;
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(180deg, #fbfdff 0%, #fff 100%);
+    }
+
+    .ticket-modal-header__number {
+      margin: 0 0 6px;
+      color: var(--primary);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+    }
+
+    .ticket-modal-header__title {
+      margin: 0;
+      font-size: clamp(22px, 3vw, 28px);
+      line-height: 1.2;
+    }
+
+    .ticket-modal-header__badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .ticket-modal-close {
+      flex-shrink: 0;
+      width: 40px;
+      min-height: 40px;
+      padding: 0;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--muted);
+      font-size: 22px;
+      line-height: 1;
+    }
+
+    .ticket-modal-close:hover {
+      border-color: var(--primary);
+      background: #eef5ff;
+      color: var(--primary);
+      transform: none;
+    }
+
+    .ticket-modal-tabs {
+      display: flex;
+      gap: 4px;
+      padding: 0 24px;
+      border-bottom: 1px solid var(--line);
+      background: #fff;
+    }
+
+    .ticket-modal-tab {
+      position: relative;
+      min-height: 46px;
+      padding: 0 16px;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 700;
+      transform: none;
+    }
+
+    .ticket-modal-tab:hover {
+      background: transparent;
+      color: var(--text);
+      transform: none;
+    }
+
+    .ticket-modal-tab.active {
+      color: var(--primary);
+      background: transparent;
+    }
+
+    .ticket-modal-tab.active::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: -1px;
+      height: 2px;
+      background: var(--primary);
+    }
+
+    .ticket-modal-body {
+      flex: 1;
+      overflow: auto;
+      padding: 20px 24px 24px;
+      background: var(--panel-soft);
+    }
+
+    .ticket-modal-panel {
+      opacity: 0;
+      transform: translateY(6px);
+      transition: opacity 180ms ease, transform 180ms ease;
+    }
+
+    .ticket-modal-panel.active {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .detail-cards {
+      display: grid;
+      gap: 16px;
+    }
+
+    .detail-card {
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #fff;
+      box-shadow: 0 2px 8px rgba(28, 39, 64, 0.04);
+    }
+
+    .detail-card__title {
+      margin: 0 0 14px;
+      font-size: 14px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      color: #344256;
+    }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px 20px;
+      margin: 0;
+    }
+
+    .info-field {
+      display: grid;
+      gap: 4px;
+    }
+
+    .info-field dt {
+      margin: 0;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .info-field dd {
+      margin: 0;
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 600;
+      line-height: 1.45;
+    }
+
+    .issue-description {
+      margin-bottom: 14px;
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel-soft);
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .issue-description p {
+      margin: 0;
+    }
+
+    .issue-screenshot-wrap {
+      margin-top: 4px;
+    }
+
+    .issue-screenshot {
+      display: block;
+      width: 100%;
+      max-height: 320px;
+      object-fit: contain;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .technician-form {
+      display: grid;
+      gap: 12px;
+    }
+
+    .timeline-empty {
+      margin: 0;
+      padding: 28px;
+      border: 1px dashed var(--line);
+      border-radius: 10px;
+      background: #fff;
+      color: var(--muted);
+      text-align: center;
+      font-size: 14px;
+    }
+
+    .ticket-timeline {
+      display: grid;
+      gap: 0;
+      padding: 4px 0;
+    }
+
+    .timeline-item {
+      display: grid;
+      grid-template-columns: 40px minmax(0, 1fr);
+      gap: 14px;
+      padding-bottom: 18px;
+    }
+
+    .timeline-item__track {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .timeline-item__icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+    }
+
+    .timeline-item__svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    .timeline-item__line {
+      flex: 1;
+      width: 2px;
+      min-height: 12px;
+      margin-top: 6px;
+      background: var(--line);
+    }
+
+    .timeline-item__card {
+      padding: 14px 16px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #fff;
+      box-shadow: 0 4px 14px rgba(28, 39, 64, 0.06);
+    }
+
+    .timeline-item__title {
+      margin: 0 0 4px;
+      font-size: 15px;
+      font-weight: 800;
+      color: var(--text);
+    }
+
+    .timeline-item__meta {
+      margin: 0 0 2px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .timeline-item__user {
+      margin: 0 0 8px;
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .timeline-item__desc {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+      white-space: pre-wrap;
+    }
+
+    .timeline-item--green .timeline-item__icon {
+      background: #ecfdf5;
+      color: #059669;
+    }
+
+    .timeline-item--orange .timeline-item__icon {
+      background: #fff7ed;
+      color: #ea580c;
+    }
+
+    .timeline-item--blue .timeline-item__icon {
+      background: #eff6ff;
+      color: #2563eb;
+    }
+
+    .timeline-item--purple .timeline-item__icon {
+      background: #f5f3ff;
+      color: #7c3aed;
+    }
+
+    .timeline-item--gray .timeline-item__icon {
+      background: #f1f5f9;
+      color: #64748b;
+    }
+
+    .timeline-item--red .timeline-item__icon {
+      background: #fef2f2;
+      color: #dc2626;
+    }
+
+    .report-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .locked {
+      max-width: 520px;
+      margin: 80px auto;
+      padding: 24px;
+      text-align: center;
+    }
+
+    @media (max-width: 980px) {
+      .hero,
+      .portal-grid {
+        display: block;
+      }
+
+      .portal-grid > * + * {
+        margin-top: 18px;
+      }
+
+      .dashboard-cards,
+      .report-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .ticket-modal {
+        padding: 10px;
+      }
+
+      .ticket-modal-dialog {
+        width: 90%;
+        max-height: 94vh;
+      }
+
+      .info-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .search-toolbar {
+        flex-direction: column;
+      }
+
+      .filter-control,
+      .filter-toggle {
+        width: 100%;
+      }
+
+      .filters-panel {
+        right: 0;
+        left: 0;
+        width: auto;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .app {
+        width: min(100% - 20px, 1280px);
+        padding: 24px 0;
+      }
+
+      .topbar {
+        align-items: flex-start;
+        flex-direction: column;
+        padding: 12px 16px;
+      }
+
+      .top-actions {
+        justify-content: flex-start;
+      }
+
+      .dashboard-cards,
+      .report-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .ticket-modal {
+        padding: 0;
+      }
+
+      .ticket-modal-dialog {
+        width: 100%;
+        max-height: 100vh;
+        height: 100vh;
+        border-radius: 0;
+      }
+
+      .ticket-modal-header,
+      .ticket-modal-tabs,
+      .ticket-modal-body {
+        padding-left: 16px;
+        padding-right: 16px;
+      }
+    }
+
+    /* Toast Notifications */
+    .toast-container{
+        position:fixed;
+        top:20px;
+        right:20px;
+        display:flex;
+        flex-direction:column;
+        gap:12px;
+        z-index:99999;
+    }
+
+    .toast{
+        min-width:320px;
+        max-width:420px;
+        padding:14px 18px;
+        border-radius:10px;
+        color:#fff;
+        font-weight:600;
+        box-shadow:0 12px 28px rgba(0,0,0,.18);
+        transform:translateX(120%);
+        opacity:0;
+        transition:.3s ease;
+    }
+
+    .toast.show{
+        transform:translateX(0);
+        opacity:1;
+    }
+
+    .toast.success{
+        background:#16a34a;
+    }
+
+    .toast.error{
+        background:#dc2626;
+    }
+
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <strong>IMS IT Admin Portal</strong>
+      <span id="sessionLabel">Administrator dashboard</span>
+    </div>
+    <div class="top-actions">
+      <a class="secondary-button" href="Formatter.html">IMS Tools</a>
+      <button type="button" id="logoutButton" hidden>Log Out</button>
+    </div>
+  </header>
+
+  <main class="app" id="portalApp">
+    <header class="hero">
+      <div>
+        <p class="eyebrow">Office LAN support</p>
+        <h1>Ticket Administration</h1>
+        <p>Review employee requests, assign technicians, update statuses, keep notes, and export operational reports.</p>
+      </div>
+    </header>
+
+    <section class="dashboard-cards" id="dashboardCards"></section>
+
+    <section class="portal-grid" id="portalGrid">
+      <div class="panel control-panel">
+        <div class="toolbar">
+          <div class="search-toolbar">
+            <div class="search-field">
+              <svg class="search-field__icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"></circle>
+                <path d="M20 20l-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
+              </svg>
+              <input id="ticketSearch" type="search" placeholder="Search tickets by number, employee, computer, department, category, status, or date" aria-label="Search tickets" />
+            </div>
+            <div class="filter-control">
+              <button type="button" id="toggleFiltersButton" class="filter-toggle" aria-expanded="false" aria-controls="ticketFiltersPanel">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M4 6h16M7 12h10M10 18h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
+                </svg>
+                Filters
+                <span id="activeFilterLabel" class="filter-toggle__badge">All</span>
+              </button>
+              <div id="ticketFiltersPanel" class="filters-panel" hidden>
+                <p class="filters-panel__title">Filter by status or date</p>
+                <div class="filters" id="ticketFilters"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="ticket-table-wrap">
+          <table id="ticketTable"></table>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel control-panel" style="margin-top: 18px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 14px;">
+        <h2 class="panel-title" style="margin: 0;">Reports</h2>
+        <div class="report-actions">
+          <button type="button" id="exportCsvButton">CSV</button>
+          <button type="button" id="exportExcelButton">Excel</button>
+          <button type="button" id="exportPdfButton">PDF</button>
+        </div>
+      </div>
+      <div class="report-grid" id="reportGrid"></div>
+    </section>
+  </main>
+
+  <section class="panel locked" id="lockedPanel" hidden>
+    <h1>Admin Login Required</h1>
+    <p class="small-note">Log in from the IT Ticketing System admin view to open this portal.</p>
+    <a class="secondary-button" href="Formatter.html">Back to IMS Tools</a>
+  </section>
+
+  <div id="ticketModal" class="ticket-modal" hidden role="dialog" aria-modal="true" aria-labelledby="ticketModalTitle">
+    <div id="ticketModalBackdrop" class="ticket-modal-backdrop"></div>
+    <div id="ticketModalDialog" class="ticket-modal-dialog">
+      <header class="ticket-modal-header">
+        <div class="ticket-modal-header__content">
+          <p id="ticketModalNumber" class="ticket-modal-header__number">Ticket #</p>
+          <h2 id="ticketModalTitle" class="ticket-modal-header__title">Ticket Details</h2>
+          <div id="ticketModalBadges" class="ticket-modal-header__badges"></div>
+        </div>
+        <button type="button" id="ticketModalClose" class="ticket-modal-close" aria-label="Close ticket details">&times;</button>
+      </header>
+      <div id="ticketModalTabs" class="ticket-modal-tabs" role="tablist" aria-label="Ticket views">
+        <button type="button" class="ticket-modal-tab active" role="tab" id="ticketTabDetails" data-tab="details" aria-selected="true" aria-controls="ticketModalPanelDetails">Details</button>
+        <button type="button" class="ticket-modal-tab" role="tab" id="ticketTabActivity" data-tab="activity" aria-selected="false" aria-controls="ticketModalPanelActivity" tabindex="-1">Activity Timeline</button>
+      </div>
+      <div class="ticket-modal-body">
+        <div id="ticketModalPanelDetails" class="ticket-modal-panel active" role="tabpanel" aria-labelledby="ticketTabDetails"></div>
+        <div id="ticketModalPanelActivity" class="ticket-modal-panel" role="tabpanel" aria-labelledby="ticketTabActivity" hidden></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  // ── API base path (adjust if IIS app is in a sub-folder) ──────────────────
+  const API = {
+    auth:      'api/auth.php',
+    list:      'api/tickets/list.php',
+    get:       'api/tickets/get.php',
+    create:    'api/tickets/create.php',
+    update:    'api/tickets/update.php',
+    delete:    'api/tickets/delete.php',
+    timeline:  'api/tickets/timeline.php',
+    upload:    'api/tickets/upload.php',
+    dashboard: 'api/dashboard/stats.php',
+  };
+
+  const ticketStatuses = ['Pending', 'In Progress', 'Waiting for User', 'Resolved', 'Closed', 'Cancelled'];
+  const ticketFilters  = ['All', 'Pending', 'In Progress', 'Waiting for User', 'Resolved', 'Closed', 'Cancelled', 'Today', 'This Week', 'This Month'];
+  const ticketTableColumns = [
+    { key: 'ticketNumber', label: 'Ticket Number' },
+    { key: 'employeeName', label: 'Employee' },
+    { key: 'department',   label: 'Department' },
+    { key: 'computerName', label: 'Computer' },
+    { key: 'category',     label: 'Category' },
+    { key: 'priority',     label: 'Priority' },
+    { key: 'status',       label: 'Status' },
+    { key: 'createdDate',  label: 'Created Date' },
+  ];
+  const prioritySortOrder = { Critical: 4, High: 3, Normal: 2, Low: 1 };
+  const statusSortOrder   = { Pending: 1, 'In Progress': 2, 'Waiting for User': 3, Resolved: 4, Closed: 5, Cancelled: 6 };
+
+  // In-memory cache of the current page of tickets
+  let tickets          = [];
+  let totalTickets     = 0;
+  let currentPage      = 1;
+  const PAGE_SIZE      = 25;
+  let activeTicketFilter = 'All';
+  let selectedTicketId   = null;
+  let sortColumn         = 'createdDate';
+  let sortDirection      = 'desc';
+  let searchDebounce     = null;
+  let adminSession       = null;   // populated by checkSession()
+
+  // ── Wire static listeners ────────────────────────────────────────────────────
+  document.getElementById('logoutButton').addEventListener('click', logoutAdmin);
+  document.getElementById('ticketSearch').addEventListener('input', () => {
+    clearTimeout(searchDebounce);
+    searchDebounce = setTimeout(() => { currentPage = 1; loadAndRender(); }, 350);
+  });
+  document.getElementById('toggleFiltersButton').addEventListener('click', event => {
+    event.stopPropagation(); toggleFiltersPanel();
+  });
+  document.addEventListener('click', event => {
+    if (!event.target.closest('.filter-control')) closeFiltersPanel();
+  });
+  document.getElementById('exportCsvButton').addEventListener('click',   exportTicketsCsv);
+  document.getElementById('exportExcelButton').addEventListener('click', exportTicketsExcel);
+  document.getElementById('exportPdfButton').addEventListener('click',   exportTicketsPdf);
+
+  TicketModal.init({
+    helpers:        { escapeHtml, slugify, formatTimelineDate },
+    ticketStatuses,
+    onSave:  saveTicketDetails,
+    onClose: () => { selectedTicketId = null; renderTicketTable(); },
+  });
+
+  initializePortal();
+
+  // ── API helper ────────────────────────────────────────────────────────────────
+  async function apiFetch(url, opts = {}) {
+    const res  = await fetch(url, { credentials: 'include', ...opts });
+    const json = await res.json().catch(() => ({ success: false, message: 'Invalid server response.' }));
+    if (res.status === 401) {
+      adminSession = null;
+      document.getElementById('portalApp').hidden  = true;
+      document.getElementById('lockedPanel').hidden = false;
+      document.getElementById('logoutButton').hidden = true;
+    }
+    return { ok: res.ok, status: res.status, ...json };
+  }
+
+  // ── Session ───────────────────────────────────────────────────────────────────
+  async function checkSession() {
+    const r = await apiFetch('api/auth.php?action=check');
+    if (r.ok && r.data) { adminSession = r.data; return true; }
+    adminSession = null; return false;
+  }
+
+  async function logoutAdmin() {
+    await apiFetch('api/auth.php?action=logout', { method: 'POST' });
+    adminSession = null;
+    window.location.href = 'Formatter.html';
+  }
+
+  // ── Boot ──────────────────────────────────────────────────────────────────────
+  async function initializePortal() {
+    const authed = await checkSession();
+    if (!authed) {
+      document.getElementById('portalApp').hidden  = true;
+      document.getElementById('lockedPanel').hidden = false;
+      document.getElementById('logoutButton').hidden = true;
+      return;
+    }
+    document.getElementById('sessionLabel').textContent =
+      (adminSession.name || adminSession.username) + ' signed in';
+    document.getElementById('logoutButton').hidden = false;
+    renderTicketFilters();
+    await loadAndRender();
+    window.setInterval(async () => {
+      await loadAndRender();
+      if (TicketModal.isOpen()) {
+        const r = await apiFetch('api/tickets/get.php?id=' + TicketModal.getOpenTicketId());
+        if (r.ok) TicketModal.refresh(r.data); else { TicketModal.close(); selectedTicketId = null; }
+      }
+    }, 30000);
+  }
+
+  // ── Load + render pipeline ────────────────────────────────────────────────────
+  async function loadAndRender() {
+    const r = await apiFetch('api/tickets/list.php?' + buildQueryParams());
+    if (!r.ok) { showToast(r.message || 'Failed to load tickets.', 'error'); return; }
+    tickets      = r.data.tickets   || [];
+    totalTickets = r.data.total     || 0;
+    currentPage  = r.data.page      || 1;
+    renderTicketTable();
+    await loadDashboard();
+  }
+
+  function buildQueryParams() {
+    const search = document.getElementById('ticketSearch').value.trim();
+    const p = new URLSearchParams({ page: currentPage, limit: PAGE_SIZE, sort: sortColumn, dir: sortDirection });
+    if (search) p.set('search', search);
+    const dateFlt = { Today: null, 'This Week': null, 'This Month': null };
+    if (activeTicketFilter !== 'All' && !(activeTicketFilter in dateFlt)) {
+      p.set('status', activeTicketFilter);
+    }
+    if (activeTicketFilter in dateFlt) {
+      const now = new Date(), pad = n => String(n).padStart(2,'0');
+      const ymd = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+      const today = ymd(now);
+      if (activeTicketFilter === 'Today') { p.set('dateFrom', today); p.set('dateTo', today); }
+      else if (activeTicketFilter === 'This Week') {
+        const mon = new Date(now); mon.setDate(now.getDate() - ((now.getDay()+6)%7));
+        p.set('dateFrom', ymd(mon)); p.set('dateTo', today);
+      } else {
+        p.set('dateFrom', `${now.getFullYear()}-${pad(now.getMonth()+1)}-01`);
+        p.set('dateTo', today);
+      }
+    }
+    return p.toString();
+  }
+
+  // ── Dashboard ─────────────────────────────────────────────────────────────────
+  let dashStats = {};
+
+  async function loadDashboard() {
+    const r = await apiFetch('api/dashboard/stats.php');
+    if (r.ok) { dashStats = r.data || {}; }
+    renderDashboardCards(); renderReports();
+  }
+
+  function renderDashboardCards() {
+    const s = dashStats;
+    document.getElementById('dashboardCards').innerHTML = [
+      { label: 'Pending Tickets',  value: s.pending    ?? tickets.filter(t => t.status === 'Pending').length },
+      { label: 'In Progress',      value: s.inProgress ?? tickets.filter(t => t.status === 'In Progress').length },
+      { label: 'Resolved Tickets', value: s.resolved   ?? tickets.filter(t => t.status === 'Resolved').length },
+      { label: 'Total Tickets',    value: s.total      ?? totalTickets },
+    ].map(c => `<div class="stat"><strong>${escapeHtml(String(c.value))}</strong>
+                <span>${escapeHtml(c.label)}</span></div>`).join('');
+  }
+
+  function renderReports() {
+    const s      = dashStats;
+    const topCat = s.topCategories?.[0]  ? `${s.topCategories[0].category} (${s.topCategories[0].cnt})`   : 'None';
+    const topDep = s.topDepartments?.[0] ? `${s.topDepartments[0].department} (${s.topDepartments[0].cnt})` : 'None';
+    const avgRes = s.avgResolutionHours  != null ? `${s.avgResolutionHours}h` : 'N/A';
+    document.getElementById('reportGrid').innerHTML = [
+      reportCard('Resolved Tickets',    s.resolved   ?? '…'),
+      reportCard('Top Problems',        topCat),
+      reportCard('Common Departments',  topDep),
+      reportCard('Avg Resolution Time', avgRes),
+      reportCard('Tickets This Month',  s.thisMonth  ?? '…'),
+      reportCard('Pending Tickets',     s.pending    ?? '…'),
+    ].join('');
+  }
+
+  function reportCard(label, value) {
+    return `<div class="stat"><strong>${escapeHtml(String(value))}</strong>
+            <span>${escapeHtml(label)}</span></div>`;
+  }
+
+  // ── Filters panel ─────────────────────────────────────────────────────────────
+  function renderTicketFilters() {
+    const c = document.getElementById('ticketFilters');
+    c.innerHTML = ticketFilters.map(f =>
+      `<button type="button" class="${f === activeTicketFilter ? 'active' : ''}"
+              data-filter="${escapeHtml(f)}">${escapeHtml(f)}</button>`).join('');
+    c.querySelectorAll('button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        activeTicketFilter = btn.dataset.filter; currentPage = 1;
+        updateFilterButtonLabel(); closeFiltersPanel(); renderTicketFilters(); loadAndRender();
+      });
+    });
+    updateFilterButtonLabel();
+  }
+
+  function updateFilterButtonLabel() {
+    document.getElementById('activeFilterLabel').textContent = activeTicketFilter;
+    document.getElementById('toggleFiltersButton').classList.toggle('active', activeTicketFilter !== 'All');
+  }
+
+  function toggleFiltersPanel() {
+    const panel = document.getElementById('ticketFiltersPanel');
+    const btn   = document.getElementById('toggleFiltersButton');
+    panel.hidden = !panel.hidden;
+    btn.setAttribute('aria-expanded', !panel.hidden ? 'true' : 'false');
+    btn.classList.toggle('active', !panel.hidden || activeTicketFilter !== 'All');
+  }
+
+  function closeFiltersPanel() {
+    const panel = document.getElementById('ticketFiltersPanel');
+    const btn   = document.getElementById('toggleFiltersButton');
+    if (panel.hidden) return;
+    panel.hidden = true;
+    btn.setAttribute('aria-expanded', 'false');
+    btn.classList.toggle('active', activeTicketFilter !== 'All');
+  }
+
+  // ── Ticket table ──────────────────────────────────────────────────────────────
+  function setSortColumn(col) {
+    sortDirection = sortColumn === col ? (sortDirection === 'asc' ? 'desc' : 'asc')
+                                       : (col === 'createdDate' ? 'desc' : 'asc');
+    sortColumn = col; currentPage = 1; loadAndRender();
+  }
+
+  function renderSortHeader(col) {
+    const as = sortColumn === col.key ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none';
+    return `<th scope="col"><button type="button" class="sort-header${sortColumn === col.key ? ' active' : ''}"
+              data-sort="${escapeHtml(col.key)}" aria-sort="${as}">${escapeHtml(col.label)}
+              <span class="sort-indicator" aria-hidden="true">
+                <svg class="sort-indicator__up"   viewBox="0 0 10 10"><path d="M5 2l4 6H1z" fill="currentColor"/></svg>
+                <svg class="sort-indicator__down" viewBox="0 0 10 10"><path d="M5 8L1 2h8z"  fill="currentColor"/></svg>
+              </span></button></th>`;
+  }
+
+  function renderTicketTable() {
+    document.getElementById('ticketTable').innerHTML = `
+      <thead><tr>${ticketTableColumns.map(renderSortHeader).join('')}</tr></thead>
+      <tbody>${tickets.map(t => `
+        <tr data-ticket-id="${escapeHtml(t.id)}" class="${t.id === selectedTicketId ? 'selected' : ''}">
+          <td>${escapeHtml(t.ticketNumber)}</td><td>${escapeHtml(t.employeeName)}</td>
+          <td>${escapeHtml(t.department)}</td><td>${escapeHtml(t.computerName)}</td>
+          <td>${escapeHtml(t.category)}</td>
+          <td><span class="badge priority-${slugify(t.priority)}">${escapeHtml(t.priority)}</span></td>
+          <td><span class="badge status-${slugify(t.status)}">${escapeHtml(t.status)}</span></td>
+          <td>${escapeHtml(formatDate(t.createdDate))}</td>
+        </tr>`).join('') || '<tr><td colspan="8">No tickets found.</td></tr>'}
+      </tbody>`;
+    document.querySelectorAll('.sort-header').forEach(b => {
+      b.addEventListener('click', e => { e.stopPropagation(); setSortColumn(b.dataset.sort); });
+    });
+    document.querySelectorAll('tr[data-ticket-id]').forEach(row => {
+      row.addEventListener('click', () => openTicketModal(row.dataset.ticketId));
+    });
+    renderPagination(Math.max(1, Math.ceil(totalTickets / PAGE_SIZE)));
+  }
+
+  function renderPagination(totalPages) {
+    let pg = document.getElementById('adminPager');
+    if (totalPages <= 1) { pg?.remove(); return; }
+    if (!pg) {
+      pg = document.createElement('div'); pg.id = 'adminPager';
+      pg.style.cssText = 'display:flex;gap:8px;align-items:center;justify-content:flex-end;margin-top:10px;font-size:13px;color:var(--muted)';
+      document.querySelector('.ticket-table-wrap').after(pg);
+    }
+    pg.innerHTML = `
+      <button type="button" id="pgPrev" ${currentPage===1?'disabled':''} style="min-height:34px;padding:0 10px">&lsaquo; Prev</button>
+      <span>Page ${currentPage} of ${totalPages} &nbsp;·&nbsp; ${totalTickets} tickets</span>
+      <button type="button" id="pgNext" ${currentPage>=totalPages?'disabled':''} style="min-height:34px;padding:0 10px">Next &rsaquo;</button>`;
+    pg.querySelector('#pgPrev')?.addEventListener('click', () => { currentPage--; loadAndRender(); });
+    pg.querySelector('#pgNext')?.addEventListener('click', () => { currentPage++; loadAndRender(); });
+  }
+
+  // ── Open / save ticket modal ───────────────────────────────────────────────────
+  async function openTicketModal(ticketId) {
+    selectedTicketId = ticketId; renderTicketTable();
+    const r = await apiFetch('api/tickets/get.php?id=' + ticketId);
+    if (!r.ok) { showToast('Could not load ticket details.', 'error'); return; }
+    TicketModal.open(ticketId, r.data);
+  }
+
+  async function saveTicketDetails(ticketId) {
+    const btn = document.getElementById('saveTicketButton');
+    if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+    try {
+      const r = await apiFetch('api/tickets/update.php?id=' + ticketId, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status:             document.getElementById('detailStatus').value,
+          assignedTechnician: document.getElementById('detailTechnician').value.trim(),
+          adminNotes:         document.getElementById('detailNotes').value.trim(),
+        }),
+      });
+      if (!r.ok) throw new Error(r.message || 'Save failed.');
+      const idx = tickets.findIndex(t => t.id === ticketId);
+      if (idx !== -1) tickets[idx] = { ...tickets[idx], ...r.data };
+      TicketModal.close(); renderTicketTable(); loadDashboard();
+      showToast('Ticket updated successfully.', 'success');
+    } catch (e) { showToast(e.message || 'Failed to save.', 'error'); }
+    finally { if (btn) { btn.disabled = false; btn.textContent = 'Save Changes'; } }
+  }
+
+  // ── Export helpers ────────────────────────────────────────────────────────────
+  async function fetchAllForExport() {
+    const r = await apiFetch('api/tickets/list.php?' + buildQueryParams() + '&limit=10000&page=1');
+    return r.ok ? (r.data.tickets || []) : tickets;
+  }
+
+  function buildExportRows(data) {
+    return [
+      ['Ticket Number','Employee','Computer','Department','Category','Priority','Status','Created Date'],
+      ...data.map(t => [t.ticketNumber,t.employeeName,t.computerName,t.department,t.category,t.priority,t.status,formatDate(t.createdDate)]),
+    ];
+  }
+
+  async function exportTicketsCsv() {
+    const rows = buildExportRows(await fetchAllForExport());
+    const csv  = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\r\n');
+    downloadBlob(csv, 'ims-it-tickets.csv', 'text/csv;charset=utf-8');
+  }
+
+  async function exportTicketsExcel() {
+    const rows = buildExportRows(await fetchAllForExport());
+    const wb = new ExcelJS.Workbook(); const ws = wb.addWorksheet('Tickets');
+    rows.forEach(r => ws.addRow(r)); ws.getRow(1).font = { bold: true };
+    const buf = await wb.xlsx.writeBuffer();
+    downloadBlob(buf, 'ims-it-tickets.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  }
+
+  async function exportTicketsPdf() {
+    const rows  = buildExportRows(await fetchAllForExport()).slice(1);
+    const popup = window.open('', '_blank');
+    if (!popup) { alert('Allow popups to export the PDF report.'); return; }
+    popup.document.write(
+      '<!doctype html><html><head><title>IMS IT Tickets</title></head><body>' +
+      '<h1>IMS IT Tickets</h1><table border="1" cellspacing="0" cellpadding="6">' +
+      '<tr><th>Ticket</th><th>Employee</th><th>Department</th><th>Computer</th>' +
+      '<th>Category</th><th>Priority</th><th>Status</th><th>Created</th></tr>' +
+      rows.map(r => `<tr>${r.map(v => `<td>${escapeHtml(v)}</td>`).join('')}</tr>`).join('') +
+      '</table></body></html>');
+    popup.document.close(); popup.print();
+  }
+
+  function downloadBlob(content, filename, type) {
+    const blob = content instanceof Blob ? content : new Blob([content], { type });
+    if (typeof saveAs === 'function') { saveAs(blob, filename); return; }
+    const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: filename });
+    a.click(); URL.revokeObjectURL(a.href);
+  }
+
+  // ── Toast ─────────────────────────────────────────────────────────────────────
+  function showToast(message, type = 'success') {
+    let c = document.querySelector('.toast-container');
+    if (!c) { c = document.createElement('div'); c.className = 'toast-container'; document.body.appendChild(c); }
+    const t = document.createElement('div'); t.className = `toast ${type}`; t.textContent = message;
+    c.appendChild(t); requestAnimationFrame(() => t.classList.add('show'));
+    setTimeout(() => { t.classList.remove('show'); setTimeout(() => { t.remove(); if (!c.children.length) c.remove(); }, 300); }, 3000);
+  }
+
+  // ── Utilities ─────────────────────────────────────────────────────────────────
+  function escapeHtml(v) {
+    return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+                        .replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+  }
+
+  function formatDate(v) {
+    if (!v) return '';
+    const d = new Date(v);
+    return `${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}/${d.getFullYear()}`;
+  }
+
+  function formatTimelineDate(v) {
+    if (!v) return '';
+    const d = new Date(v);
+    return d.toLocaleString(undefined,{day:'2-digit',month:'short',year:'numeric'}) +
+           ' • ' + d.toLocaleString(undefined,{hour:'2-digit',minute:'2-digit',hour12:false});
+  }
+
+  function slugify(v) {
+    return String(v||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
+  }
+  </script>
+</body>
+</html>

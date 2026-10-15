@@ -1,0 +1,83 @@
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+.Python
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Environment and local configuration
+.env
+.env.*
+!.env.example
+settings.json
+
+# Build and packaging outputs
+build/
+build_*/
+dist/
+dist_*/
+release/
+releases/
+*.egg-info/
+*.manifest
+*.spec
+!IMS_tinytaskv4/IMS_tinytask.spec
+*.spec.tmp
+
+# PyInstaller generated files
+*.toc
+*.pkg
+*.pyz
+*.pyi-cache/
+.pyinstaller/
+__pyinstaller__/
+base_library.zip
+xref-*.html
+warn-*.txt
+
+# Executables and generated outputs
+*.exe
+*.msi
+*.zip
+*.7z
+*.tmp
+*.log
+output/
+exports/
+generated/
+
+# Local macro/test artifacts
+*.bak
+*.old
+*_backup.*
+* - Copy.*
+* Copy.*
+test.json
+
+# IDE/editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Windows/macOS system files
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# Local agent/tooling state
+.agents/
+.codex/
+.tmp_pycache/

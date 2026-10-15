@@ -1,0 +1,4667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Main Encoding Format Converter</title>
+  <script src="https://cdn.jsdelivr.net/npm/exceljs/dist/exceljs.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js" defer></script>
+  <style>
+    :root {
+      --bg: #eef2f7;
+      --panel: #ffffff;
+      --panel-soft: #f8fafc;
+      --text: #172033;
+      --muted: #64748b;
+      --line: #d9e2ee;
+      --primary: #1f6feb;
+      --primary-dark: #1959bd;
+      --success: #0f8a5f;
+      --danger: #c2410c;
+      --shadow: 0 20px 60px rgba(28, 39, 64, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Inter, "Segoe UI", Arial, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(31, 111, 235, 0.11), transparent 32rem),
+        linear-gradient(180deg, #f8fbff 0%, var(--bg) 100%);
+    }
+
+    .app {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 40px 0;
+    }
+
+    .hero {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 22px;
+    }
+
+    .eyebrow {
+      margin: 0 0 8px;
+      color: var(--primary);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(32px, 5vw, 54px);
+      line-height: 1;
+      letter-spacing: 0;
+    }
+
+    .hero p {
+      max-width: 640px;
+      margin: 14px 0 0;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.65;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 38px;
+      padding: 0 14px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.7);
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--muted);
+    }
+
+    .status-pill.ready .status-dot {
+      background: var(--success);
+    }
+
+    .status-pill.error .status-dot {
+      background: var(--danger);
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(300px, 380px) minmax(0, 1fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .panel {
+      background: rgba(255, 255, 255, 0.92);
+      border: 1px solid rgba(217, 226, 238, 0.9);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    .control-panel {
+      padding: 22px;
+    }
+
+    .side-stack {
+      display: grid;
+      gap: 14px;
+    }
+
+    .panel-title {
+      margin: 0 0 14px;
+      font-size: 18px;
+      line-height: 1.25;
+    }
+
+    .upload-box {
+      display: block;
+      position: relative;
+      padding: 22px;
+      border: 1px dashed #9bb4d8;
+      border-radius: 8px;
+      background: var(--panel-soft);
+      cursor: pointer;
+      transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
+    }
+
+    .upload-box:hover {
+      border-color: var(--primary);
+      background: #f2f7ff;
+      transform: translateY(-1px);
+    }
+
+    .upload-box input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .upload-icon {
+      display: grid;
+      place-items: center;
+      width: 44px;
+      height: 44px;
+      margin-bottom: 14px;
+      border-radius: 8px;
+      background: #e5efff;
+      color: var(--primary);
+      font-size: 24px;
+      font-weight: 800;
+    }
+
+    .upload-label {
+      display: block;
+      color: var(--text);
+      font-size: 16px;
+      font-weight: 800;
+    }
+
+    .upload-help,
+    .file-name,
+    .small-note {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .upload-help {
+      display: block;
+      margin-top: 6px;
+    }
+
+    .file-name {
+      margin: 12px 0 0;
+      word-break: break-word;
+    }
+
+    .actions {
+      display: grid;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .secondary-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 44px;
+      padding: 0 16px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 800;
+      text-decoration: none;
+      transition: border-color 160ms ease, color 160ms ease, transform 160ms ease;
+    }
+
+    .secondary-button:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+      transform: translateY(-1px);
+    }
+
+    button {
+      min-height: 44px;
+      padding: 0 16px;
+      border: 0;
+      border-radius: 8px;
+      background: var(--primary);
+      color: #fff;
+      cursor: pointer;
+      font: inherit;
+      font-weight: 800;
+      transition: background 160ms ease, transform 160ms ease, opacity 160ms ease;
+    }
+
+    button:hover:not(:disabled) {
+      background: var(--primary-dark);
+      transform: translateY(-1px);
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      background: #8db6f3;
+      color: #ffffff;
+      opacity: 0.85;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .stat {
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel-soft);
+    }
+
+    .stat strong {
+      display: block;
+      font-size: 24px;
+      line-height: 1;
+    }
+
+    .stat span {
+      display: block;
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .validation-panel {
+      margin-top: 14px;
+      padding: 12px;
+      border: 1px solid rgba(194, 65, 12, 0.28);
+      border-radius: 8px;
+      background: #fff7ed;
+      color: var(--danger);
+    }
+
+    .validation-panel strong {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--danger);
+      font-size: 13px;
+    }
+
+    .validation-list {
+      display: grid;
+      gap: 6px;
+      margin: 0;
+      padding-left: 18px;
+      color: #7c2d12;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .macro-panel {
+      padding: 18px;
+    }
+
+    .macro-panel p {
+      margin: 0 0 14px;
+    }
+
+    .macro-grid {
+      display: grid;
+      gap: 10px;
+    }
+
+    .macro-status {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel-soft);
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .macro-status span:first-child {
+      color: var(--text);
+    }
+
+    .macro-status.ready,
+    .macro-status.recording,
+    .macro-status.playing {
+      border-color: rgba(15, 138, 95, 0.35);
+      background: #f0fdf7;
+      color: var(--success);
+    }
+
+    .macro-status.offline {
+      border-color: rgba(194, 65, 12, 0.28);
+      background: #fff7ed;
+      color: var(--danger);
+    }
+
+    .macro-hotkeys {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .macro-hotkey {
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel-soft);
+    }
+
+    .macro-hotkey span {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .macro-hotkey strong {
+      display: block;
+      margin-top: 4px;
+      color: var(--text);
+      font-size: 13px;
+      word-break: break-word;
+    }
+
+    .macro-controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .macro-controls button {
+      min-height: 40px;
+      padding: 0 10px;
+      font-size: 13px;
+    }
+
+    .macro-list {
+      display: grid;
+      gap: 8px;
+      margin-top: 2px;
+    }
+
+    .macro-list button,
+    .macro-empty {
+      min-height: 0;
+      padding: 9px 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel-soft);
+      color: var(--text);
+      font-size: 12px;
+      font-weight: 800;
+      text-align: left;
+    }
+
+    .macro-list button {
+      cursor: pointer;
+    }
+
+    .macro-list button:hover:not(:disabled) {
+      border-color: var(--primary);
+      color: var(--primary);
+      background: #fff;
+    }
+
+    .macro-list button:disabled,
+    .macro-empty {
+      color: var(--muted);
+    }
+
+    .preview-panel {
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    .preview-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .preview-header h2 {
+      margin: 0;
+      font-size: 18px;
+    }
+
+    .preview-header span {
+      color: var(--muted);
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .preview-controls {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 20px;
+      border-bottom: 1px solid var(--line);
+      background: var(--panel-soft);
+    }
+
+    .pager {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .pager button {
+      display: grid;
+      place-items: center;
+      width: 36px;
+      min-height: 36px;
+      padding: 0;
+      background: #fff;
+      border: 1px solid var(--line);
+      color: var(--text);
+      font-size: 18px;
+      line-height: 1;
+    }
+
+    .pager button:hover:not(:disabled) {
+      background: #eef5ff;
+      color: var(--primary);
+    }
+
+    .page-info,
+    .page-size {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .page-size {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .page-size select {
+      height: 36px;
+      padding: 0 28px 0 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--text);
+      font: inherit;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    #preview {
+      overflow: auto;
+      max-height: 620px;
+      background: #fff;
+    }
+
+    .empty-state {
+      display: grid;
+      place-items: center;
+      min-height: 360px;
+      padding: 34px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    .empty-state strong {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--text);
+      font-size: 18px;
+    }
+
+    table {
+      border-collapse: separate;
+      border-spacing: 0;
+      width: 100%;
+      min-width: 1050px;
+    }
+
+    th,
+    td {
+      border-bottom: 1px solid var(--line);
+      padding: 11px 12px;
+      font-size: 13px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      background: #f7faff;
+      color: #344256;
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    tr:nth-child(even) td {
+      background: #fbfdff;
+    }
+
+    td {
+      color: #273449;
+      white-space: nowrap;
+    }
+
+    td.validation-cell {
+      background: #fff7ed !important;
+      color: #7c2d12;
+      font-weight: 700;
+    }
+
+    .invalid-character {
+      display: inline-block;
+      min-width: 1.1em;
+      margin: 0 1px;
+      padding: 1px 3px;
+      border-radius: 4px;
+      background: #c2410c;
+      color: #ffffff;
+      text-align: center;
+      font-weight: 900;
+    }
+
+    .app-shell {
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-height: 62px;
+      padding: 0 20px;
+      border-bottom: 1px solid rgba(217, 226, 238, 0.9);
+      background: rgba(255, 255, 255, 0.86);
+      backdrop-filter: blur(14px);
+    }
+
+    .sidebar-toggle {
+      display: grid;
+      place-items: center;
+      width: 40px;
+      min-height: 40px;
+      padding: 0;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--text);
+    }
+
+    .brand {
+      display: grid;
+      gap: 2px;
+    }
+
+    .brand strong {
+      font-size: 18px;
+      line-height: 1;
+    }
+
+    .brand span {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 248px minmax(0, 1fr);
+      min-height: calc(100vh - 62px);
+      transition: grid-template-columns 180ms ease;
+    }
+
+    body.sidebar-collapsed .layout {
+      grid-template-columns: 82px minmax(0, 1fr);
+    }
+
+    .sidebar {
+      position: sticky;
+      top: 62px;
+      height: calc(100vh - 62px);
+      padding: 18px 12px;
+      border-right: 1px solid rgba(217, 226, 238, 0.9);
+      background: rgba(255, 255, 255, 0.72);
+      backdrop-filter: blur(10px);
+      overflow: auto;
+    }
+
+    .nav-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      min-height: 46px;
+      padding: 0 12px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--text);
+      text-align: left;
+    }
+
+    .nav-item:hover,
+    .nav-item.active {
+      border-color: rgba(31, 111, 235, 0.28);
+      background: #eef5ff;
+      color: var(--primary);
+      transform: none;
+    }
+
+    .nav-icon {
+      display: grid;
+      flex: 0 0 24px;
+      place-items: center;
+      width: 24px;
+      height: 24px;
+      border-radius: 8px;
+      background: #e5efff;
+      color: var(--primary);
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    body.sidebar-collapsed .nav-label {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+    }
+
+    .module-host {
+      min-width: 0;
+    }
+
+    .module {
+      display: none;
+      animation: moduleFade 180ms ease;
+    }
+
+    .module.active {
+      display: block;
+    }
+
+    @keyframes moduleFade {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .module .app {
+      padding: 32px 0;
+    }
+
+    .tinytask-workspace,
+    .ticket-workspace {
+      display: grid;
+      gap: 18px;
+    }
+
+    .ticket-home {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .ticket-hero {
+      min-height: 280px;
+      display: grid;
+      align-content: center;
+      justify-items: start;
+      gap: 18px;
+      padding: 32px;
+    }
+
+    body.modal-open {
+      overflow: hidden;
+    }
+
+    .submit-ticket-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 120;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .submit-ticket-modal[hidden] {
+      display: none;
+    }
+
+    .submit-ticket-modal-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.52);
+      backdrop-filter: blur(4px);
+    }
+
+    .submit-ticket-modal-dialog {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      width: min(760px, 100%);
+      max-height: min(92vh, 860px);
+      border: 1px solid rgba(217, 226, 238, 0.95);
+      border-radius: 12px;
+      background: var(--panel);
+      box-shadow: 0 28px 80px rgba(15, 23, 42, 0.22);
+      overflow: hidden;
+    }
+
+    .submit-ticket-modal-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 20px 22px 16px;
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(180deg, #fbfdff 0%, #fff 100%);
+    }
+
+    .submit-ticket-modal-header h2 {
+      margin: 0;
+      font-size: clamp(22px, 3vw, 28px);
+      line-height: 1.2;
+    }
+
+    .submit-ticket-modal-header p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .submit-ticket-modal-close {
+      flex-shrink: 0;
+      width: 40px;
+      min-height: 40px;
+      padding: 0;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--muted);
+      font-size: 22px;
+      line-height: 1;
+    }
+
+    .submit-ticket-modal-close:hover {
+      border-color: var(--primary);
+      background: #eef5ff;
+      color: var(--primary);
+      transform: none;
+    }
+
+    .submit-ticket-modal-body {
+      overflow: auto;
+      padding: 20px 22px 22px;
+      background: var(--panel-soft);
+    }
+
+    .ticket-hero h2 {
+      margin: 0;
+      font-size: clamp(28px, 4vw, 44px);
+      line-height: 1.05;
+    }
+
+    .ticket-hero p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 17px;
+    }
+
+    .ticket-tabs,
+    .ticket-filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .ticket-tabs button,
+    .ticket-filters button {
+      min-height: 38px;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--text);
+      font-size: 13px;
+    }
+
+    .ticket-tabs button.active,
+    .ticket-filters button.active {
+      border-color: rgba(31, 111, 235, 0.28);
+      background: #eef5ff;
+      color: var(--primary);
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .form-grid .full {
+      grid-column: 1 / -1;
+    }
+
+    label.field {
+      display: grid;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      min-height: 42px;
+      padding: 9px 11px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--text);
+      font: inherit;
+      font-size: 14px;
+    }
+
+    textarea {
+      min-height: 112px;
+      resize: vertical;
+      line-height: 1.5;
+    }
+
+    .readonly-input {
+      background: var(--panel-soft);
+      color: var(--muted);
+    }
+
+    .ticket-admin-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 340px;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .dashboard-cards {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .ticket-table-wrap {
+      overflow: auto;
+    }
+
+    .ticket-table {
+      min-width: 920px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      padding: 0 8px;
+      border-radius: 999px;
+      background: #eef2f7;
+      color: var(--text);
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .badge.priority-critical,
+    .badge.priority-high {
+      background: #fff7ed;
+      color: #9a3412;
+    }
+
+    .badge.status-resolved,
+    .badge.status-closed {
+      background: #f0fdf7;
+      color: var(--success);
+    }
+
+    .badge.status-pending,
+    .badge.status-cancelled {
+      background: #fff7ed;
+      color: var(--danger);
+    }
+
+    .ticket-detail {
+      display: grid;
+      gap: 12px;
+    }
+
+    .detail-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .detail-row strong {
+      color: var(--text);
+      text-align: right;
+    }
+
+    .timeline {
+      display: grid;
+      gap: 10px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .timeline li {
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel-soft);
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .timeline strong {
+      display: block;
+      color: var(--text);
+    }
+
+    .report-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .ticket-result {
+      display: none;
+      padding: 18px;
+      border: 1px solid rgba(15, 138, 95, 0.28);
+      border-radius: 8px;
+      background: #f0fdf7;
+      color: var(--success);
+      font-weight: 800;
+    }
+
+    .ticket-result.visible {
+      display: block;
+    }
+
+    .auth-box {
+      display: grid;
+      gap: 12px;
+      padding: 18px;
+    }
+
+    /* ── Employee view-only ticket table ── */
+    .vo-section {
+      margin-top: 18px;
+    }
+
+    .vo-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+
+    .vo-header h2 {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.25;
+    }
+
+    .vo-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(15, 138, 95, 0.25);
+      background: #f0fdf7;
+      color: var(--success);
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .vo-toolbar {
+      display: flex;
+      align-items: stretch;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .vo-search-wrap {
+      position: relative;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .vo-search-wrap input {
+      min-height: 44px;
+      padding-left: 40px;
+      border-radius: 10px;
+      background: #fff;
+      box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.04);
+    }
+
+    .vo-search-wrap input:focus {
+      outline: none;
+      border-color: rgba(31, 111, 235, 0.45);
+      box-shadow: 0 0 0 3px rgba(31, 111, 235, 0.12);
+    }
+
+    .vo-search-icon {
+      position: absolute;
+      top: 50%;
+      left: 14px;
+      width: 16px;
+      height: 16px;
+      color: var(--muted);
+      transform: translateY(-50%);
+      pointer-events: none;
+    }
+
+    .vo-filter-wrap {
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    .vo-filter-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 44px;
+      padding: 0 14px;
+      border: 1px solid var(--line) !important;
+      border-radius: 10px !important;
+      background: #fff !important;
+      color: var(--text) !important;
+      font-size: 13px;
+      font-weight: 800;
+      white-space: nowrap;
+      transform: none !important;
+    }
+
+    .vo-filter-btn:hover,
+    .vo-filter-btn.active {
+      border-color: rgba(31, 111, 235, 0.35) !important;
+      background: #eef5ff !important;
+      color: var(--primary) !important;
+    }
+
+    .vo-filter-chip {
+      display: inline-flex;
+      align-items: center;
+      min-height: 22px;
+      padding: 0 8px;
+      border-radius: 999px;
+      background: rgba(31, 111, 235, 0.12);
+      color: var(--primary);
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .vo-filter-panel {
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      z-index: 30;
+      width: min(420px, calc(100vw - 48px));
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fff;
+      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.14);
+    }
+
+    .vo-filter-panel[hidden] {
+      display: none;
+    }
+
+    .vo-filter-panel-title {
+      margin: 0 0 10px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .vo-filter-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .vo-filter-pills button {
+      min-height: 36px;
+      padding: 0 12px;
+      border: 1px solid var(--line) !important;
+      background: #fff !important;
+      color: var(--text) !important;
+      font-size: 13px;
+      font-weight: 700;
+      border-radius: 8px !important;
+      transform: none !important;
+    }
+
+    .vo-filter-pills button.active {
+      border-color: rgba(31, 111, 235, 0.28) !important;
+      background: #eef5ff !important;
+      color: var(--primary) !important;
+    }
+
+    .vo-table-wrap {
+      overflow: auto;
+    }
+
+    .vo-table {
+      border-collapse: separate;
+      border-spacing: 0;
+      width: 100%;
+      min-width: 860px;
+    }
+
+    .vo-table th,
+    .vo-table td {
+      border-bottom: 1px solid var(--line);
+      padding: 11px 12px;
+      font-size: 13px;
+      text-align: left;
+      vertical-align: top;
+      white-space: nowrap;
+    }
+
+    .vo-table th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      background: #f7faff;
+      color: #344256;
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .vo-table tr:nth-child(even) td {
+      background: #fbfdff;
+    }
+
+    .vo-sort-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 0;
+      border: 0 !important;
+      background: transparent !important;
+      color: inherit !important;
+      font: inherit;
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      cursor: pointer;
+      min-height: 0;
+      transform: none !important;
+    }
+
+    .vo-sort-btn:hover,
+    .vo-sort-btn.active {
+      color: var(--primary) !important;
+      background: transparent !important;
+      transform: none !important;
+    }
+
+    .vo-sort-arrows {
+      display: inline-flex;
+      flex-direction: column;
+      gap: 1px;
+      line-height: 1;
+    }
+
+    .vo-sort-arrows svg {
+      width: 10px;
+      height: 10px;
+      opacity: 0.25;
+    }
+
+    .vo-sort-btn[aria-sort="ascending"]  .vo-arrow-up,
+    .vo-sort-btn[aria-sort="descending"] .vo-arrow-down {
+      opacity: 1;
+      color: var(--primary);
+    }
+
+    /* ── Employee read-only ticket detail modal ── */
+    .vo-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 120;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .vo-modal[hidden] {
+      display: none;
+    }
+
+    .vo-modal-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.52);
+      backdrop-filter: blur(4px);
+    }
+
+    .vo-modal-dialog {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      width: min(860px, 100%);
+      max-height: min(92vh, 900px);
+      border: 1px solid rgba(217, 226, 238, 0.95);
+      border-radius: 12px;
+      background: var(--panel);
+      box-shadow: 0 28px 80px rgba(15, 23, 42, 0.22);
+      overflow: hidden;
+    }
+
+    .vo-modal-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 20px 24px 16px;
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(180deg, #fbfdff 0%, #fff 100%);
+    }
+
+    .vo-modal-header__number {
+      margin: 0 0 4px;
+      color: var(--primary);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+    }
+
+    .vo-modal-header__title {
+      margin: 0;
+      font-size: clamp(20px, 3vw, 26px);
+      line-height: 1.2;
+    }
+
+    .vo-modal-header__badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .vo-modal-close {
+      flex-shrink: 0;
+      width: 40px;
+      min-height: 40px;
+      padding: 0;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--muted);
+      font-size: 22px;
+      line-height: 1;
+    }
+
+    .vo-modal-close:hover {
+      border-color: var(--primary);
+      background: #eef5ff;
+      color: var(--primary);
+      transform: none;
+    }
+
+    .vo-modal-tabs {
+      display: flex;
+      gap: 4px;
+      padding: 0 24px;
+      border-bottom: 1px solid var(--line);
+      background: #fff;
+    }
+
+    .vo-modal-tab {
+      position: relative;
+      min-height: 46px;
+      padding: 0 16px;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 700;
+      transform: none;
+    }
+
+    .vo-modal-tab:hover {
+      background: transparent;
+      color: var(--text);
+      transform: none;
+    }
+
+    .vo-modal-tab.active {
+      color: var(--primary);
+      background: transparent;
+    }
+
+    .vo-modal-tab.active::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: -1px;
+      height: 2px;
+      background: var(--primary);
+    }
+
+    .vo-modal-body {
+      flex: 1;
+      overflow: auto;
+      padding: 20px 24px 24px;
+      background: var(--panel-soft);
+    }
+
+    .vo-modal-panel { display: none; }
+    .vo-modal-panel.active { display: block; }
+
+    .vo-detail-cards {
+      display: grid;
+      gap: 16px;
+    }
+
+    .vo-detail-card {
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #fff;
+      box-shadow: 0 2px 8px rgba(28, 39, 64, 0.04);
+    }
+
+    .vo-detail-card__title {
+      margin: 0 0 14px;
+      font-size: 13px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      color: #344256;
+    }
+
+    .vo-info-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px 20px;
+    }
+
+    .vo-info-field dt {
+      margin: 0 0 3px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .vo-info-field dd {
+      margin: 0;
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 600;
+      line-height: 1.45;
+      word-break: break-word;
+    }
+
+    .vo-description-box {
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel-soft);
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      word-break: break-word;
+      margin-bottom: 14px;
+    }
+
+    .vo-screenshot {
+      display: block;
+      width: 100%;
+      max-height: 320px;
+      object-fit: contain;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .vo-timeline {
+      display: grid;
+      gap: 0;
+      padding: 4px 0;
+    }
+
+    .timeline-empty {
+      margin: 0;
+      padding: 28px;
+      border: 1px dashed var(--line);
+      border-radius: 10px;
+      background: #fff;
+      color: var(--muted);
+      text-align: center;
+      font-size: 14px;
+    }
+
+    .timeline-item {
+      display: grid;
+      grid-template-columns: 40px minmax(0, 1fr);
+      gap: 14px;
+      padding-bottom: 18px;
+    }
+
+    .timeline-item__track {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .timeline-item__icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+    }
+
+    .timeline-item__svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    .timeline-item__line {
+      flex: 1;
+      width: 2px;
+      min-height: 12px;
+      margin-top: 6px;
+      background: var(--line);
+    }
+
+    .timeline-item__card {
+      padding: 14px 16px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #fff;
+      box-shadow: 0 4px 14px rgba(28, 39, 64, 0.06);
+    }
+
+    .timeline-item__title {
+      margin: 0 0 4px;
+      font-size: 15px;
+      font-weight: 800;
+      color: var(--text);
+    }
+
+    .timeline-item__meta {
+      margin: 0 0 2px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .timeline-item__user {
+      margin: 0 0 8px;
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .timeline-item__desc {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+      white-space: pre-wrap;
+    }
+
+    .timeline-item--green .timeline-item__icon {
+      background: #ecfdf5;
+      color: #059669;
+    }
+
+    .timeline-item--orange .timeline-item__icon {
+      background: #fff7ed;
+      color: #ea580c;
+    }
+
+    .timeline-item--blue .timeline-item__icon {
+      background: #eff6ff;
+      color: #2563eb;
+    }
+
+    .timeline-item--purple .timeline-item__icon {
+      background: #f5f3ff;
+      color: #7c3aed;
+    }
+
+    .timeline-item--gray .timeline-item__icon {
+      background: #f1f5f9;
+      color: #64748b;
+    }
+
+    .timeline-item--red .timeline-item__icon {
+      background: #fef2f2;
+      color: #dc2626;
+    }
+
+    .vo-ro-note {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 12px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(31, 111, 235, 0.2);
+      background: #eff6ff;
+      color: var(--primary);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .vo-table tbody tr {
+      cursor: pointer;
+    }
+
+    .vo-table tbody tr:hover td {
+      background: #eef5ff;
+    }
+
+    @media (max-width: 640px) {
+      .vo-modal { padding: 0; }
+      .vo-modal-dialog {
+        width: 100%;
+        max-height: 100vh;
+        height: 100vh;
+        border-radius: 0;
+      }
+      .vo-info-grid { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 850px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      body.sidebar-collapsed .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        position: static;
+        height: auto;
+        border-right: 0;
+        border-bottom: 1px solid rgba(217, 226, 238, 0.9);
+      }
+
+      body.sidebar-collapsed .sidebar {
+        display: none;
+      }
+
+      .app {
+        width: min(100% - 20px, 1180px);
+        padding: 24px 0;
+      }
+
+      .hero,
+      .workspace {
+        display: block;
+      }
+
+      .status-pill {
+        margin-top: 16px;
+      }
+
+      .side-stack {
+        margin-bottom: 14px;
+      }
+
+      .preview-header {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .preview-controls {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .macro-hotkeys {
+        grid-template-columns: 1fr;
+      }
+
+      .ticket-home,
+      .ticket-admin-grid,
+      .form-grid,
+      .dashboard-cards,
+      .report-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .submit-ticket-modal {
+        padding: 0;
+      }
+
+      .submit-ticket-modal-dialog {
+        width: 100%;
+        max-height: 100vh;
+        height: 100vh;
+        border-radius: 0;
+      }
+
+      .submit-ticket-modal-header,
+      .submit-ticket-modal-body {
+        padding-left: 16px;
+        padding-right: 16px;
+      }
+
+      .pager,
+      .page-size {
+        justify-content: space-between;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <button class="sidebar-toggle" type="button" id="sidebarToggle" aria-label="Toggle navigation">&#9776;</button>
+      <div class="brand">
+        <strong>IMS Tools</strong>
+        <span>Office productivity dashboard</span>
+      </div>
+    </header>
+
+    <div class="layout">
+      <aside class="sidebar" aria-label="Main navigation">
+        <nav class="nav-list">
+          <button class="nav-item active" type="button" data-module="excel" title="Excel Formatter">
+            <span class="nav-icon" aria-hidden="true">XL</span>
+            <span class="nav-label">Excel Formatter</span>
+          </button>
+          <button class="nav-item" type="button" data-module="tinytask" title="TinyTask">
+            <span class="nav-icon" aria-hidden="true">TT</span>
+            <span class="nav-label">TinyTask</span>
+          </button>
+          <button class="nav-item" type="button" data-module="tickets" title="IT Ticketing System">
+            <span class="nav-icon" aria-hidden="true">IT</span>
+            <span class="nav-label">IT Ticketing System</span>
+          </button>
+        </nav>
+      </aside>
+
+      <main class="module-host">
+        <section class="module active" id="module-excel" aria-label="Excel Formatter">
+          <div class="app">
+            <header class="hero">
+              <div>
+                <p class="eyebrow">Main encoding format</p>
+                <h1>Excel Format Converter</h1>
+                <p>Upload a center or head office workbook, review the normalized rows, then export a copy with a new formatted sheet.</p>
+              </div>
+              <div class="status-pill" id="statusPill">
+                <span class="status-dot" aria-hidden="true"></span>
+                <span id="statusText">Waiting for upload</span>
+              </div>
+            </header>
+
+            <main class="workspace">
+              <section class="panel control-panel" aria-label="Conversion controls">
+                <h2 class="panel-title">Convert workbook</h2>
+
+                <label class="upload-box" for="fileInput">
+                  <input type="file" id="fileInput" accept=".xlsx" />
+                  <span class="upload-icon" aria-hidden="true">+</span>
+                  <span class="upload-label">Choose Excel file</span>
+                  <span class="upload-help">Accepts .xlsx files and preserves the original workbook sheets.</span>
+                  <p class="file-name" id="fileName">No file selected</p>
+                </label>
+
+                <div class="actions">
+                  <button type="button" id="downloadButton" onclick="downloadFormatted()" disabled>Download Converted File</button>
+                  <p class="small-note">The export adds a Formatted sheet without changing your source file.</p>
+                </div>
+
+                <div class="stats" aria-label="Conversion summary">
+                  <div class="stat">
+                    <strong id="rowCount">0</strong>
+                    <span>Rows found</span>
+                  </div>
+                  <div class="stat">
+                    <strong id="columnCount">0</strong>
+                    <span>Fields mapped</span>
+                  </div>
+                </div>
+
+                <div class="validation-panel" id="validationPanel" hidden>
+                  <strong id="validationSummary">Special characters found</strong>
+                  <ul class="validation-list" id="validationList"></ul>
+                </div>
+              </section>
+
+              <section class="panel preview-panel" aria-label="Converted data preview">
+                <div class="preview-header">
+                  <h2>Preview</h2>
+                  <span id="previewMeta">Upload a workbook to see converted rows</span>
+                </div>
+                <div class="preview-controls" id="previewControls" hidden>
+                  <div class="pager" aria-label="Preview pages">
+                    <button type="button" id="firstPageButton" title="First page" aria-label="First page">&laquo;</button>
+                    <button type="button" id="prevPageButton" title="Previous page" aria-label="Previous page">&lsaquo;</button>
+                    <span class="page-info" id="pageInfo">Page 1 of 1</span>
+                    <button type="button" id="nextPageButton" title="Next page" aria-label="Next page">&rsaquo;</button>
+                    <button type="button" id="lastPageButton" title="Last page" aria-label="Last page">&raquo;</button>
+                  </div>
+                  <label class="page-size" for="pageSizeSelect">
+                    Rows per page
+                    <select id="pageSizeSelect">
+                      <option value="10">10</option>
+                      <option value="25">25</option>
+                      <option value="50">50</option>
+                      <option value="100">100</option>
+                    </select>
+                  </label>
+                </div>
+                <div id="preview">
+                  <div class="empty-state">
+                    <div>
+                      <strong>No preview yet</strong>
+                      Select an Excel file to generate the main encoding format.
+                    </div>
+                  </div>
+                </div>
+              </section>
+            </main>
+          </div>
+        </section>
+
+        <section class="module" id="module-tinytask" aria-label="TinyTask">
+          <div class="app">
+            <header class="hero">
+              <div>
+                <p class="eyebrow">Windows macro helper</p>
+                <h1>IMS TinyTask</h1>
+                <p>Connect to the local TinyTask helper to record, load, and replay Windows input macros.</p>
+              </div>
+            </header>
+
+            <main class="tinytask-workspace">
+              <section class="panel macro-panel" aria-label="IMS TinyTask controls">
+                <h2 class="panel-title">TinyTask controls</h2>
+                <p class="small-note">Use the bundled Windows macro tool after exporting or while encoding in IMS. Save macros and settings inside TinyTask, then connect here to load and play them.</p>
+
+                <div class="macro-grid">
+                  <a class="secondary-button" id="macroDownloadLink" href="https://github.com/arnjrmlim/ims-format/releases/latest/download/IMS_tinytask.exe" download>Download IMS TinyTask</a>
+
+                  <div class="macro-status offline" id="macroSessionStatus">
+                    <span>Session</span>
+                    <strong id="macroSessionState">Offline</strong>
+                  </div>
+
+                  <div class="macro-hotkeys" aria-label="TinyTask hotkeys">
+                    <div class="macro-hotkey">
+                      <span>Record hotkey</span>
+                      <strong id="macroRecordHotkey">ctrl+alt+r</strong>
+                    </div>
+                    <div class="macro-hotkey">
+                      <span>Play hotkey</span>
+                      <strong id="macroPlayHotkey">ctrl+alt+p</strong>
+                    </div>
+                  </div>
+
+                  <div class="macro-controls" aria-label="TinyTask session controls">
+                    <button type="button" id="macroConnectButton">Connect</button>
+                    <button type="button" id="macroStopButton" disabled>Stop</button>
+                    <button type="button" id="macroPlayButton" disabled>Play</button>
+                    <button type="button" id="macroStopPlayButton" disabled>Stop Play</button>
+                  </div>
+
+                  <div class="stats" aria-label="Macro summary">
+                    <div class="stat">
+                      <strong id="macroEventCount">0</strong>
+                      <span>Session events</span>
+                    </div>
+                    <div class="stat">
+                      <strong id="macroDuration">0s</strong>
+                      <span>Session duration</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 class="panel-title">Registered macros</h3>
+                    <div class="macro-list" id="macroList">
+                      <div class="macro-empty">Connect TinyTask to show macros saved in the app.</div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            </main>
+          </div>
+        </section>
+
+        <section class="module" id="module-tickets" aria-label="IT Ticketing System">
+          <div class="app">
+            <header class="hero">
+              <div>
+                <p class="eyebrow">Office LAN support</p>
+                <h1>IT Ticketing System</h1>
+                <p>Submit employee requests without accounts, then manage history, assignments, statuses, reports, and exports from the admin area.</p>
+              </div>
+              <div class="status-pill ready">
+                <span class="status-dot" aria-hidden="true"></span>
+                <span id="ticketCounter">0 tickets</span>
+              </div>
+            </header>
+
+            <div class="ticket-tabs" aria-label="Ticketing views">
+              <button type="button" class="active" data-ticket-view="employee">Employee</button>
+              <button type="button" data-ticket-view="admin">Admin</button>
+            </div>
+
+            <main class="ticket-workspace">
+              <section class="ticket-view" id="ticket-view-employee">
+                <div class="ticket-home">
+                  <section class="panel ticket-hero">
+                    <div>
+                      <p class="eyebrow">IMS IT SUPPORT</p>
+                      <h2>Need assistance?</h2>
+                      <p>Report hardware, software, network, printer, email, or account issues. Our IT team will review your request and follow up.</p>
+                    </div>
+                    <button type="button" id="focusTicketForm">Submit IT Request</button>
+                    <div class="ticket-result" id="ticketResult"></div>
+                  </section>
+
+                  <section class="panel control-panel vo-section" aria-label="Submitted tickets">
+                    <div class="vo-header">
+                      <h2>Submitted Tickets</h2>
+                      <span class="vo-badge">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" stroke-width="2"/>
+                          <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
+                        </svg>
+                        View Only
+                      </span>
+                    </div>
+
+                    <div class="vo-toolbar">
+                      <div class="vo-search-wrap">
+                        <svg class="vo-search-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                          <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/>
+                          <path d="M20 20l-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                        <input
+                          type="search"
+                          id="voSearch"
+                          placeholder="Search by ticket number, employee, department, category, status, or date"
+                          aria-label="Search submitted tickets"
+                        />
+                      </div>
+                      <div class="vo-filter-wrap">
+                        <button type="button" id="voFilterBtn" class="vo-filter-btn" aria-expanded="false" aria-controls="voFilterPanel">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <path d="M4 6h16M7 12h10M10 18h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                          </svg>
+                          Filters
+                          <span id="voFilterChip" class="vo-filter-chip">All</span>
+                        </button>
+                        <div id="voFilterPanel" class="vo-filter-panel" hidden>
+                          <p class="vo-filter-panel-title">Filter by status or date</p>
+                          <div class="vo-filter-pills" id="voFilterPills"></div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="vo-table-wrap">
+                      <table class="vo-table" id="voTable" aria-label="Submitted tickets list"></table>
+                    </div>
+                  </section>
+                </div>
+              </section>
+
+              <section class="ticket-view" id="ticket-view-admin" hidden>
+                <section class="panel control-panel">
+                  <div id="adminLoginPanel" class="auth-box">
+                    <h2 class="panel-title">Admin Login</h2>
+                    <label class="field">Username
+                      <input id="adminUsername" autocomplete="username" />
+                    </label>
+                    <label class="field">Password
+                      <input id="adminPassword" type="password" autocomplete="current-password" />
+                    </label>
+                    <button type="button" id="adminLoginButton">Log In</button>
+                    <p class="small-note" id="adminLoginMessage">Default local admin: admin / admin123. Successful login opens the separate Admin Portal.</p>
+                  </div>
+                </section>
+              </section>
+            </main>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <!-- Employee read-only ticket detail modal -->
+  <div id="voModal" class="vo-modal" hidden role="dialog" aria-modal="true" aria-labelledby="voModalTitle">
+    <div id="voModalBackdrop" class="vo-modal-backdrop"></div>
+    <div id="voModalDialog" class="vo-modal-dialog">
+      <header class="vo-modal-header">
+        <div>
+          <p id="voModalNumber" class="vo-modal-header__number">Ticket #</p>
+          <h2 id="voModalTitle" class="vo-modal-header__title">Ticket Details</h2>
+          <div id="voModalBadges" class="vo-modal-header__badges"></div>
+          <span class="vo-ro-note" aria-label="View only">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" stroke-width="2"/>
+              <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
+            </svg>
+            View Only — contact IT to make changes
+          </span>
+        </div>
+        <button type="button" id="voModalClose" class="vo-modal-close" aria-label="Close ticket details">&times;</button>
+      </header>
+
+      <div class="vo-modal-tabs" role="tablist" aria-label="Ticket views">
+        <button type="button" class="vo-modal-tab active" role="tab" data-votab="details"
+                aria-selected="true" id="voTabDetails">Details</button>
+        <button type="button" class="vo-modal-tab" role="tab" data-votab="activity"
+                aria-selected="false" tabindex="-1" id="voTabActivity">Activity Timeline</button>
+      </div>
+
+      <div class="vo-modal-body">
+        <div id="voModalPanelDetails" class="vo-modal-panel active" role="tabpanel" aria-labelledby="voTabDetails"></div>
+        <div id="voModalPanelActivity" class="vo-modal-panel"        role="tabpanel" aria-labelledby="voTabActivity" hidden></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="submitTicketModal" class="submit-ticket-modal" hidden role="dialog" aria-modal="true" aria-labelledby="submitTicketModalTitle">
+    <div id="submitTicketModalBackdrop" class="submit-ticket-modal-backdrop"></div>
+    <div id="submitTicketModalDialog" class="submit-ticket-modal-dialog">
+      <header class="submit-ticket-modal-header">
+        <div>
+          <h2 id="submitTicketModalTitle">Submit IT Request</h2>
+          <p>Fill in the details below and our IT team will review your request.</p>
+        </div>
+        <button type="button" id="submitTicketModalClose" class="submit-ticket-modal-close" aria-label="Close submit ticket form">&times;</button>
+      </header>
+      <div class="submit-ticket-modal-body">
+        <form id="ticketForm" class="form-grid" aria-label="Submit IT request">
+          <label class="field">Employee Name
+            <input id="employeeName" name="employeeName" required autocomplete="name" />
+          </label>
+          <label class="field">Department
+            <input id="department" name="department" required />
+          </label>
+          <label class="field">Email
+            <input id="email" name="email" type="email" />
+          </label>
+          <label class="field">Windows Device Name
+            <input class="readonly-input" id="computerName" name="computerName" readonly
+                   placeholder="Detected automatically via launcher" />
+            <span id="computerNameSource" style="
+              display:none;
+              font-size:11px;
+              font-weight:700;
+              color:var(--success);
+              letter-spacing:0.02em;
+              text-transform:uppercase;
+              margin-top:2px;
+            "></span>
+          </label>
+          <label class="field">Issue Category
+            <select id="category" name="category" required>
+              <option>Hardware</option>
+              <option>Software</option>
+              <option>Network</option>
+              <option>Printer</option>
+              <option>Email</option>
+              <option>Account</option>
+              <option>Other</option>
+            </select>
+          </label>
+          <label class="field">Priority
+            <select id="priority" name="priority" required>
+              <option>Low</option>
+              <option selected>Normal</option>
+              <option>High</option>
+              <option>Critical</option>
+            </select>
+          </label>
+          <label class="field full">Issue Description
+            <textarea id="description" name="description" required></textarea>
+          </label>
+          <label class="field full">Screenshot Upload
+            <input id="screenshot" name="screenshot" type="file" accept="image/*" />
+          </label>
+          <button class="full" type="submit">Submit Ticket</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  let convertedData = [];
+  let originalWorkbook = null;
+  let originalFileBuffer = null;
+  let previewPage = 1;
+  let previewPageSize = 10;
+  let validationIssues = [];
+  const nameFields = [
+    'Payor First Name',
+    'Payor Middle Name',
+    'Payor Last Name',
+    'Payor Suffix',
+    'Member First Name',
+    'Member Middle Name',
+    'Member Last Name',
+    'Member Suffix'
+  ];
+  const fileInput = document.getElementById('fileInput');
+  const downloadButton = document.getElementById('downloadButton');
+  const statusPill = document.getElementById('statusPill');
+  const statusText = document.getElementById('statusText');
+  const fileName = document.getElementById('fileName');
+  const rowCount = document.getElementById('rowCount');
+  const columnCount = document.getElementById('columnCount');
+  const validationPanel = document.getElementById('validationPanel');
+  const validationSummary = document.getElementById('validationSummary');
+  const validationList = document.getElementById('validationList');
+  const previewMeta = document.getElementById('previewMeta');
+  const previewControls = document.getElementById('previewControls');
+  const firstPageButton = document.getElementById('firstPageButton');
+  const prevPageButton = document.getElementById('prevPageButton');
+  const nextPageButton = document.getElementById('nextPageButton');
+  const lastPageButton = document.getElementById('lastPageButton');
+  const pageInfo = document.getElementById('pageInfo');
+  const pageSizeSelect = document.getElementById('pageSizeSelect');
+  const macroEventCount = document.getElementById('macroEventCount');
+  const macroDuration = document.getElementById('macroDuration');
+  const macroList = document.getElementById('macroList');
+  const macroSessionStatus = document.getElementById('macroSessionStatus');
+  const macroSessionState = document.getElementById('macroSessionState');
+  const macroRecordHotkey = document.getElementById('macroRecordHotkey');
+  const macroPlayHotkey = document.getElementById('macroPlayHotkey');
+  const macroConnectButton = document.getElementById('macroConnectButton');
+  const macroStopButton = document.getElementById('macroStopButton');
+  const macroPlayButton = document.getElementById('macroPlayButton');
+  const macroStopPlayButton = document.getElementById('macroStopPlayButton');
+  const tinyTaskApi = 'http://127.0.0.1:8765';
+  const tinyTaskProtocol = 'ims-tinytask://open';
+  const tinyTaskDownloadUrl = 'https://github.com/arnjrmlim/ims-format/releases/latest/download/IMS_tinytask.exe';
+  const tinyTaskReleaseApiUrl = 'https://api.github.com/repos/arnjrmlim/ims-format/releases/latest';
+  const tinyTaskReleasesUrl = 'https://github.com/arnjrmlim/ims-format/releases/latest';
+  const macroDownloadLink = document.getElementById('macroDownloadLink');
+  const sidebarToggle = document.getElementById('sidebarToggle');
+  const navItems = document.querySelectorAll('.nav-item[data-module]');
+  const modules = document.querySelectorAll('.module');
+  // Tickets and admin sessions are managed by the PHP/MySQL backend — no localStorage keys needed.
+  const computerDetectionService = {
+    // ── Allowed hostname characters (RFC 952 / 1123 + NetBIOS limit) ────────
+    // Letters, digits, hyphens only.  Max 15 chars (NetBIOS) but we allow up
+    // to 253 chars for FQDNs in case the domain appends a suffix.
+    _HOSTNAME_RE: /^[A-Za-z0-9\-]{1,253}$/,
+    _MAX_LEN: 253,
+
+    // ── Parse and validate a single query-param value ────────────────────────
+    _sanitize(raw) {
+      if (!raw) return '';
+      // Trim whitespace, take the first 253 characters, then test
+      const v = String(raw).trim().slice(0, this._MAX_LEN);
+      return this._HOSTNAME_RE.test(v) ? v.toUpperCase() : '';
+    },
+
+    // ── Read ALL recognised query parameters from the current URL ────────────
+    // Returns an object with every supported key.  Unknown keys are ignored.
+    // Adding a new supported param in the future: just add its key here.
+    getParams() {
+      const supported = ['pc', 'user', 'dept', 'ip', 'asset', 'floor', 'mac'];
+      const result    = {};
+      try {
+        const search = new URLSearchParams(window.location.search);
+        for (const key of supported) {
+          const val = search.get(key);
+          if (val !== null) result[key] = decodeURIComponent(val).trim();
+        }
+      } catch (e) { /* URLSearchParams not supported — result stays empty */ }
+      return result;
+    },
+
+    // ── Return the validated computer name ───────────────────────────────────
+    // Priority 1 : ?pc= query parameter  (set by the GPO launcher)
+    // Priority 2 : localStorage cache    (set by a previous GPO-launched visit)
+    // Priority 3 : empty string          (user opened URL manually — field stays blank)
+    async getComputerName() {
+      const params = this.getParams();
+
+      // Priority 1 — query param supplied by the PowerShell launcher
+      if (params.pc) {
+        const clean = this._sanitize(params.pc);
+        if (clean) {
+          // Cache it so a page-reload without the param still shows the name
+          try { localStorage.setItem('ims-detected-computer-name', clean); } catch (e) {}
+          return clean;
+        }
+      }
+
+      // Priority 2 — cached value from a previous launcher-opened session
+      try {
+        const cached = localStorage.getItem('ims-detected-computer-name');
+        if (cached) {
+          const clean = this._sanitize(cached);
+          if (clean) return clean;
+        }
+      } catch (e) {}
+
+      // Priority 3 — no detection; field left blank so user knows it's missing
+      return '';
+    },
+
+    // ── Return the full set of sanitised launch params ────────────────────────
+    // Exposed so submitTicket can store them alongside the ticket record.
+    async getLaunchParams() {
+      const raw    = this.getParams();
+      const result = {};
+      for (const [key, val] of Object.entries(raw)) {
+        // pc gets the strict hostname regex; everything else just gets trimmed
+        result[key] = (key === 'pc')
+          ? this._sanitize(val)
+          : String(val).trim().slice(0, 100);
+      }
+      return result;
+    }
+  };
+  let voTotalTickets     = 0;   // total from last API response, used for counter badge
+  let activeTicketFilter = 'All';
+  let selectedTicketId   = null;
+
+  fileInput.addEventListener('change', handleFile);
+  macroDownloadLink.addEventListener('click', downloadTinyTask);
+  macroConnectButton.addEventListener('click', connectTinyTask);
+  macroStopButton.addEventListener('click', () => sendTinyTaskCommand('stop'));
+  macroPlayButton.addEventListener('click', () => sendTinyTaskCommand('play'));
+  macroStopPlayButton.addEventListener('click', () => sendTinyTaskCommand('stop-play'));
+  firstPageButton.addEventListener('click', () => goToPreviewPage(1));
+  prevPageButton.addEventListener('click', () => goToPreviewPage(previewPage - 1));
+  nextPageButton.addEventListener('click', () => goToPreviewPage(previewPage + 1));
+  lastPageButton.addEventListener('click', () => goToPreviewPage(getPreviewPageCount()));
+  pageSizeSelect.addEventListener('change', () => {
+    previewPageSize = Number(pageSizeSelect.value);
+    previewPage = 1;
+    renderPreview(convertedData);
+  });
+  sidebarToggle.addEventListener('click', () => {
+    document.body.classList.toggle('sidebar-collapsed');
+  });
+  navItems.forEach(item => {
+    item.addEventListener('click', () => setActiveModule(item.dataset.module));
+  });
+
+  initializeTicketing();
+
+  function setActiveModule(moduleName) {
+    navItems.forEach(item => {
+      item.classList.toggle('active', item.dataset.module === moduleName);
+    });
+    modules.forEach(module => {
+      module.classList.toggle('active', module.id === `module-${moduleName}`);
+    });
+    if (moduleName === 'tickets') {
+      renderTicketing();
+    }
+  }
+
+  function initializeTicketing() {
+    // Populate the computer name field from the GPO launcher query param
+    computerDetectionService.getComputerName().then(name => {
+      const field  = document.getElementById('computerName');
+      const source = document.getElementById('computerNameSource');
+      if (field) {
+        field.value = name;
+      }
+      if (source) {
+        if (name) {
+          // Tell the user where the value came from
+          const params = computerDetectionService.getParams();
+          source.textContent = params.pc
+            ? '\u2713 Auto-detected from your Windows device'
+            : '\u2713 Restored from your last session';
+          source.style.display = 'block';
+        } else {
+          source.textContent  = '\u26A0 Not detected \u2013 open via the IMS desktop shortcut';
+          source.style.color  = 'var(--danger)';
+          source.style.display = 'block';
+        }
+      }
+    });
+    document.getElementById('focusTicketForm').addEventListener('click', openSubmitTicketModal);
+    document.getElementById('submitTicketModalClose').addEventListener('click', closeSubmitTicketModal);
+    document.getElementById('submitTicketModalBackdrop').addEventListener('click', closeSubmitTicketModal);
+    document.getElementById('submitTicketModal').addEventListener('keydown', handleSubmitTicketModalKeydown);
+    document.getElementById('ticketForm').addEventListener('submit', submitTicket);
+    document.querySelectorAll('[data-ticket-view]').forEach(button => {
+      button.addEventListener('click', () => setTicketView(button.dataset.ticketView));
+    });
+    document.getElementById('adminLoginButton').addEventListener('click', loginAdmin);
+    renderTicketing();
+    // Counter badge is updated by the voTable poll (every 30 s) — no separate timer needed.
+  }
+
+  let submitTicketModalPreviouslyFocused = null;
+
+  function openSubmitTicketModal() {
+    const modal = document.getElementById('submitTicketModal');
+    submitTicketModalPreviouslyFocused = document.activeElement;
+    modal.hidden = false;
+    document.body.classList.add('modal-open');
+    document.getElementById('employeeName').focus();
+  }
+
+  function closeSubmitTicketModal() {
+    const modal = document.getElementById('submitTicketModal');
+    if (modal.hidden) {
+      return;
+    }
+    modal.hidden = true;
+    document.body.classList.remove('modal-open');
+    if (submitTicketModalPreviouslyFocused && typeof submitTicketModalPreviouslyFocused.focus === 'function') {
+      submitTicketModalPreviouslyFocused.focus();
+    }
+    submitTicketModalPreviouslyFocused = null;
+  }
+
+  function handleSubmitTicketModalKeydown(event) {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      closeSubmitTicketModal();
+      return;
+    }
+
+    if (event.key !== 'Tab') {
+      return;
+    }
+
+    const dialog = document.getElementById('submitTicketModalDialog');
+    const focusable = [...dialog.querySelectorAll('a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])')]
+      .filter(element => element.offsetParent !== null);
+    if (!focusable.length) {
+      return;
+    }
+
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
+
+  function setTicketView(viewName) {
+    document.querySelectorAll('[data-ticket-view]').forEach(button => {
+      button.classList.toggle('active', button.dataset.ticketView === viewName);
+    });
+    document.querySelectorAll('.ticket-view').forEach(view => {
+      view.hidden = view.id !== `ticket-view-${viewName}`;
+    });
+    if (viewName === 'admin') {
+      renderAdminState();
+    }
+    renderTicketing();
+  }
+
+  async function loginAdmin() {
+    const username = document.getElementById('adminUsername').value.trim();
+    const password = document.getElementById('adminPassword').value;
+    const message  = document.getElementById('adminLoginMessage');
+
+    if (!username || !password) {
+      message.textContent = 'Enter your username and password.';
+      return;
+    }
+
+    const btn = document.getElementById('adminLoginButton');
+    btn.disabled = true;
+    message.textContent = 'Signing in…';
+
+    try {
+      const res = await fetch('api/auth.php?action=login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ username, password })
+      });
+
+      const json = await res.json();
+
+      if (!res.ok || !json.success) {
+        message.textContent = json.message || 'Invalid credentials.';
+        btn.disabled = false;
+        return;
+      }
+
+      document.getElementById('adminPassword').value = '';
+      window.location.href = 'AdminPortal.html';
+    } catch (err) {
+      message.textContent = 'Could not reach the server. Check your network.';
+      btn.disabled = false;
+    }
+  }
+
+  async function submitTicket(event) {
+    event.preventDefault();
+    const form     = event.currentTarget;
+    const formData = new FormData(form);
+    const submitBtn = form.querySelector('button[type="submit"]');
+
+    // ── Validate computer name ────────────────────────────────────────────────
+    const rawComputerName       = formData.get('computerName') || '';
+    const validatedComputerName = computerDetectionService._sanitize(rawComputerName)
+                                  || 'Unknown Device';
+
+    // Capture all GPO launch params for the record
+    const launchParams = await computerDetectionService.getLaunchParams();
+
+    // ── Show loading state ────────────────────────────────────────────────────
+    if (submitBtn) submitBtn.disabled = true;
+    const resultEl = document.getElementById('ticketResult');
+    resultEl.classList.remove('visible');
+
+    try {
+      // Step 1: Create the ticket record
+      const createRes = await fetch('api/tickets/create.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({
+          employeeName: (formData.get('employeeName') || '').trim(),
+          department:   (formData.get('department')   || '').trim(),
+          contact:      (formData.get('email')      || '').trim(),
+          computerName: validatedComputerName,
+          category:     formData.get('category'),
+          priority:     formData.get('priority'),
+          description:  (formData.get('description')  || '').trim(),
+          launchParams: launchParams
+        })
+      });
+
+      const createJson = await createRes.json();
+
+      if (!createRes.ok || !createJson.success) {
+        throw new Error(createJson.message || 'Failed to submit ticket.');
+      }
+
+      const ticket = createJson.data;
+
+      // Step 2: Upload screenshot if provided (non-blocking — ticket already saved)
+      const screenshotFile = formData.get('screenshot');
+      if (screenshotFile && screenshotFile.size > 0) {
+        try {
+          const uploadForm = new FormData();
+          uploadForm.append('screenshot', screenshotFile);
+          await fetch(`api/tickets/upload.php?ticket_id=${encodeURIComponent(ticket.id)}`, {
+            method: 'POST',
+            credentials: 'same-origin',
+            body: uploadForm
+          });
+          // Upload errors are non-fatal; ticket is already created
+        } catch (uploadErr) {
+          // Silently ignore upload failures
+        }
+      }
+
+      // ── Success ───────────────────────────────────────────────────────────
+      form.reset();
+
+      // Restore computer name + source badge after form.reset() clears the field
+      computerDetectionService.getComputerName().then(name => {
+        const field  = document.getElementById('computerName');
+        const source = document.getElementById('computerNameSource');
+        if (field)  field.value = name;
+        if (source) source.style.display = name ? 'block' : 'none';
+      });
+
+      closeSubmitTicketModal();
+      resultEl.classList.add('visible');
+      resultEl.innerHTML =
+        `<div>Ticket Submitted</div>` +
+        `<div>Ticket Number: ${escapeHtml(ticket.ticketNumber)}</div>` +
+        `<div>Workstation: ${escapeHtml(ticket.computerName)}</div>` +
+        `<div>Status: Pending</div>`;
+
+      renderTicketing();
+
+    } catch (err) {
+      resultEl.classList.add('visible');
+      resultEl.style.setProperty('background', '#fff7ed');
+      resultEl.style.setProperty('border-color', 'rgba(194, 65, 12, 0.28)');
+      resultEl.style.setProperty('color', '#c2410c');
+      resultEl.innerHTML = `<div>\u26A0 ${escapeHtml(err.message)}</div>`;
+    } finally {
+      if (submitBtn) submitBtn.disabled = false;
+    }
+  }
+
+  function renderTicketing() {
+    renderTicketCounters();
+  }
+
+  function renderTicketCounters() {
+    const count = voTotalTickets;
+    document.getElementById('ticketCounter').textContent =
+      `${count} ${count === 1 ? 'ticket' : 'tickets'}`;
+  }
+
+  async function renderAdminState() {
+    try {
+      const res = await fetch('api/auth.php?action=check', {
+        method: 'GET',
+        credentials: 'same-origin',
+        cache: 'no-store'
+      });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success) {
+          window.location.href = 'AdminPortal.html';
+        }
+      }
+    } catch (e) {
+      // Not logged in or server unreachable — stay on login panel
+    }
+  }
+
+  function setStatus(message, type = '') {
+    statusText.textContent = message;
+    statusPill.className = `status-pill ${type}`.trim();
+  }
+
+  function setSummary(rows = 0, columns = 0) {
+    rowCount.textContent = rows;
+    columnCount.textContent = columns;
+    previewMeta.textContent = rows ? `${rows} converted rows available` : 'Upload a workbook to see converted rows';
+    previewControls.hidden = rows === 0;
+    downloadButton.disabled = rows === 0 || validationIssues.length > 0;
+  }
+
+  function clearValidationIssues() {
+    validationIssues = [];
+    validationPanel.hidden = true;
+    validationList.innerHTML = '';
+  }
+
+  function renderValidationIssues() {
+    if (!validationIssues.length) {
+      validationPanel.hidden = true;
+      validationList.innerHTML = '';
+      return;
+    }
+
+    validationSummary.textContent =
+      `${validationIssues.length} name field${validationIssues.length === 1 ? '' : 's'} need cleanup`;
+
+    validationList.innerHTML = validationIssues
+      .slice(0, 8)
+      .map(issue => `
+        <li>
+          Row ${issue.row}: ${escapeHtml(issue.field)} has "${escapeHtml(issue.characters)}"
+        </li>
+      `)
+      .join('');
+
+    if (validationIssues.length > 8) {
+      validationList.innerHTML += `
+        <li>${validationIssues.length - 8} more issue${validationIssues.length - 8 === 1 ? '' : 's'} not shown.</li>
+      `;
+    }
+
+    validationPanel.hidden = false;
+  }
+
+  function getPreviewPageCount() {
+    return Math.max(1, Math.ceil(convertedData.length / previewPageSize));
+  }
+
+  function goToPreviewPage(page) {
+    previewPage = Math.min(Math.max(page, 1), getPreviewPageCount());
+    renderPreview(convertedData);
+  }
+
+  function updatePager(startRow, endRow, totalRows) {
+    const pageCount = getPreviewPageCount();
+    const hasRows = totalRows > 0;
+
+    previewControls.hidden = !hasRows;
+    pageInfo.textContent = hasRows
+      ? `Page ${previewPage} of ${pageCount}`
+      : 'Page 1 of 1';
+    previewMeta.textContent = hasRows
+      ? `Showing rows ${startRow + 1}-${endRow} of ${totalRows}`
+      : 'Upload a workbook to see converted rows';
+
+    firstPageButton.disabled = !hasRows || previewPage === 1;
+    prevPageButton.disabled = !hasRows || previewPage === 1;
+    nextPageButton.disabled = !hasRows || previewPage === pageCount;
+    lastPageButton.disabled = !hasRows || previewPage === pageCount;
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
+  function renderEmptyPreview(title, message) {
+    document.getElementById('preview').innerHTML = `
+      <div class="empty-state">
+        <div>
+          <strong>${escapeHtml(title)}</strong>
+          ${escapeHtml(message)}
+        </div>
+      </div>
+    `;
+  }
+
+  function formatSeconds(seconds) {
+    const value = Number(seconds || 0);
+
+    if (value < 60) {
+      return `${value.toFixed(1)}s`;
+    }
+
+    const minutes = Math.floor(value / 60);
+    const remaining = Math.round(value % 60);
+    return `${minutes}m ${String(remaining).padStart(2, '0')}s`;
+  }
+
+  function setTinyTaskOffline() {
+    macroSessionStatus.className = 'macro-status offline';
+    macroSessionState.textContent = 'Offline';
+    macroEventCount.textContent = '0';
+    macroDuration.textContent = '0s';
+    macroRecordHotkey.textContent = 'ctrl+alt+r';
+    macroPlayHotkey.textContent = 'ctrl+alt+p';
+    renderMacroList([]);
+    macroStopButton.disabled = true;
+    macroPlayButton.disabled = true;
+    macroStopPlayButton.disabled = true;
+  }
+
+  function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  async function downloadTinyTask(event) {
+    if (event) {
+      event.preventDefault();
+    }
+
+    try {
+      setStatus('Checking IMS TinyTask release', '');
+      const releaseResponse = await fetch(tinyTaskReleaseApiUrl, {
+        cache: 'no-store',
+        headers: {
+          Accept: 'application/vnd.github+json'
+        }
+      });
+
+      if (!releaseResponse.ok) {
+        throw new Error('Latest release is not available');
+      }
+
+      const release = await releaseResponse.json();
+      const hasExecutable = Array.isArray(release.assets)
+        && release.assets.some(asset => asset && asset.name === 'IMS_tinytask.exe');
+
+      if (!hasExecutable) {
+        throw new Error('IMS_tinytask.exe is not attached to the latest release');
+      }
+
+      const downloadLink = document.createElement('a');
+      downloadLink.href = tinyTaskDownloadUrl;
+      downloadLink.download = 'IMS_tinytask.exe';
+      downloadLink.rel = 'noopener';
+      downloadLink.style.display = 'none';
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      downloadLink.remove();
+      setStatus('Downloading IMS TinyTask', 'ready');
+    } catch (err) {
+      setStatus('Download failed; opening release page', 'error');
+      window.location.href = tinyTaskReleasesUrl;
+    }
+  }
+
+  function updateTinyTaskSession(session) {
+    const state = session.state || 'idle';
+    const connected = Boolean(session.ok);
+    const recording = Boolean(session.recording);
+    const playing = Boolean(session.playing);
+    const hasEvents = Number(session.events || 0) > 0;
+
+    macroSessionStatus.className = `macro-status ${connected ? state : 'offline'}`;
+    macroSessionState.textContent = connected
+      ? state.charAt(0).toUpperCase() + state.slice(1)
+      : 'Offline';
+    macroEventCount.textContent = String(session.events || 0);
+    macroDuration.textContent = formatSeconds(session.duration);
+    macroRecordHotkey.textContent = session.record_hotkey || 'ctrl+alt+r';
+    macroPlayHotkey.textContent = session.playback_hotkey || 'ctrl+alt+p';
+    renderMacroList(session.macros || []);
+
+    macroStopButton.disabled = !connected || (!recording && !playing);
+    macroPlayButton.disabled = !connected || recording || playing || !hasEvents;
+    macroStopPlayButton.disabled = !connected || !playing;
+  }
+
+  function renderMacroList(macros) {
+    const availableMacros = macros.filter(macro => macro.exists);
+
+    if (!availableMacros.length) {
+      macroList.innerHTML = '<div class="macro-empty">No saved macros registered in the app.</div>';
+      return;
+    }
+
+    macroList.innerHTML = availableMacros
+      .map(macro => `
+        <button type="button" data-macro-index="${Number(macro.index)}" title="${escapeHtml(macro.path)}">
+          ${escapeHtml(macro.name)}
+        </button>
+      `)
+      .join('');
+  }
+
+  macroList.addEventListener('click', event => {
+    const button = event.target.closest('button[data-macro-index]');
+
+    if (!button) return;
+
+    sendTinyTaskCommand(`load-macro?index=${encodeURIComponent(button.dataset.macroIndex)}`);
+  });
+
+  async function refreshTinyTaskSession() {
+    try {
+      const response = await fetch(`${tinyTaskApi}/status`, {
+        cache: 'no-store'
+      });
+
+      if (!response.ok) {
+        throw new Error('TinyTask bridge unavailable');
+      }
+
+      updateTinyTaskSession(await response.json());
+      return true;
+    } catch (err) {
+      setTinyTaskOffline();
+      return false;
+    }
+  }
+
+  async function waitForTinyTaskSession(timeoutMs = 5000) {
+    const startedAt = Date.now();
+
+    while (Date.now() - startedAt < timeoutMs) {
+      if (await refreshTinyTaskSession()) {
+        return true;
+      }
+
+      await sleep(500);
+    }
+
+    return false;
+  }
+
+  async function connectTinyTask() {
+    macroConnectButton.disabled = true;
+    macroSessionState.textContent = 'Connecting';
+
+    if (await refreshTinyTaskSession()) {
+      macroConnectButton.disabled = false;
+      setStatus('TinyTask connected', 'ready');
+      return;
+    }
+
+    setStatus('Opening TinyTask', '');
+    window.location.href = tinyTaskProtocol;
+
+    if (await waitForTinyTaskSession()) {
+      macroConnectButton.disabled = false;
+      setStatus('TinyTask connected', 'ready');
+      return;
+    }
+
+    macroConnectButton.disabled = false;
+    setTinyTaskOffline();
+    setStatus('TinyTask not installed; downloading', 'error');
+    await downloadTinyTask();
+  }
+
+  async function sendTinyTaskCommand(command) {
+    try {
+      const response = await fetch(`${tinyTaskApi}/command/${command}`, {
+        cache: 'no-store'
+      });
+
+      if (!response.ok) {
+        throw new Error('TinyTask command failed');
+      }
+
+      updateTinyTaskSession(await response.json());
+      setTimeout(refreshTinyTaskSession, 250);
+    } catch (err) {
+      setTinyTaskOffline();
+      setStatus('TinyTask is not running', 'error');
+    }
+  }
+
+  setTinyTaskOffline();
+  refreshTinyTaskSession();
+  setInterval(refreshTinyTaskSession, 1500);
+
+  // ── View-only ticket table (Employee view) ──────────────────
+
+  (function () {
+
+    var VO_COLUMNS = [
+      { key: 'ticketNumber', label: 'Ticket Number' },
+      { key: 'employeeName', label: 'Employee'      },
+      { key: 'department',   label: 'Department'    },
+      { key: 'computerName', label: 'Computer'      },
+      { key: 'category',     label: 'Category'      },
+      { key: 'priority',     label: 'Priority'      },
+      { key: 'status',       label: 'Status'        },
+      { key: 'createdDate',  label: 'Created Date'  }
+    ];
+
+    var VO_FILTERS = [
+      'All', 'Pending', 'In Progress', 'Waiting for User', 'Resolved',
+      'Closed', 'Cancelled', 'Today', 'This Week', 'This Month'
+    ];
+
+    var voActiveFilter  = 'All';
+    var voSortCol       = 'createdDate';
+    var voSortDir       = 'desc';
+    var voRenderTimer   = null;   // debounce handle for search input
+
+    /* ── helpers ───────────────────────────────────────────── */
+
+    function voEscape(v) {
+      return String(v == null ? '' : v)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function voSlug(v) {
+      return String(v || '').toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    }
+
+    function voFmtDate(v) {
+      if (!v) return '';
+      var d = new Date(v);
+      return String(d.getMonth() + 1).padStart(2, '0') + '/' +
+             String(d.getDate()).padStart(2, '0')       + '/' +
+             d.getFullYear();
+    }
+
+    /* ── Build API query params from current UI state ──────── */
+
+    function voApiParams() {
+      var params = new URLSearchParams();
+      var raw = document.getElementById('voSearch').value.trim();
+      if (raw) params.set('search', raw);
+
+      var today    = new Date();
+      var yyyy     = today.getFullYear();
+      var mm       = String(today.getMonth() + 1).padStart(2, '0');
+      var dd       = String(today.getDate()).padStart(2, '0');
+      var todayStr = yyyy + '-' + mm + '-' + dd;
+
+      if (voActiveFilter === 'Today') {
+        params.set('dateFrom', todayStr);
+        params.set('dateTo',   todayStr);
+      } else if (voActiveFilter === 'This Week') {
+        var dayOfWeek = today.getDay() || 7;
+        var monday    = new Date(today);
+        monday.setDate(today.getDate() - dayOfWeek + 1);
+        params.set('dateFrom', monday.getFullYear() + '-' +
+          String(monday.getMonth() + 1).padStart(2, '0') + '-' +
+          String(monday.getDate()).padStart(2, '0'));
+      } else if (voActiveFilter === 'This Month') {
+        params.set('dateFrom', yyyy + '-' + mm + '-01');
+      } else if (voActiveFilter !== 'All') {
+        params.set('status', voActiveFilter);
+      }
+
+      var sortMap = {
+        ticketNumber: 'ticketNumber', employeeName: 'employeeName',
+        department: 'department',     computerName: 'computerName',
+        category: 'category',         priority: 'priority',
+        status: 'status',             createdDate: 'createdDate'
+      };
+      params.set('sort', sortMap[voSortCol] || 'createdDate');
+      params.set('dir',  voSortDir);
+      params.set('limit', '200');
+      params.set('page',  '1');
+      return params.toString();
+    }
+
+    /* ── sort ──────────────────────────────────────────────── */
+
+    function voSetSort(col) {
+      voSortDir = (voSortCol === col)
+        ? (voSortDir === 'asc' ? 'desc' : 'asc')
+        : (col === 'createdDate' ? 'desc' : 'asc');
+      voSortCol = col;
+      voRender();
+    }
+
+    /* ── render ────────────────────────────────────────────── */
+
+    function voRender() {
+      var table = document.getElementById('voTable');
+      if (!table) return;
+
+      var thead = '<thead><tr>' +
+        VO_COLUMNS.map(voSortHeader).join('') +
+        '</tr></thead>';
+      table.innerHTML = thead +
+        '<tbody><tr><td colspan="8" style="text-align:center;color:var(--muted);padding:28px 12px;">' +
+        'Loading\u2026</td></tr></tbody>';
+
+      fetch('api/tickets/list.php?' + voApiParams(), {
+        cache: 'no-store',
+        credentials: 'same-origin'
+      })
+      .then(function (res) { return res.json(); })
+      .then(function (json) {
+        if (!json.success) throw new Error(json.message || 'API error');
+        var rows  = json.data.tickets || [];
+        var total = json.data.total   || 0;
+
+        voTotalTickets = total;
+        renderTicketCounters();
+
+        var tbody;
+        if (rows.length) {
+          tbody = '<tbody>' + rows.map(function (t) {
+            return '<tr data-void="' + voEscape(t.id) + '">' +
+              '<td>' + voEscape(t.ticketNumber) + '</td>' +
+              '<td>' + voEscape(t.employeeName) + '</td>' +
+              '<td>' + voEscape(t.department)   + '</td>' +
+              '<td>' + voEscape(t.computerName) + '</td>' +
+              '<td>' + voEscape(t.category)     + '</td>' +
+              '<td><span class="badge priority-' + voSlug(t.priority) + '">' + voEscape(t.priority) + '</span></td>' +
+              '<td><span class="badge status-'   + voSlug(t.status)   + '">' + voEscape(t.status)   + '</span></td>' +
+              '<td>' + voEscape(voFmtDate(t.createdDate)) + '</td>' +
+              '</tr>';
+          }).join('') + '</tbody>';
+        } else {
+          tbody = '<tbody><tr><td colspan="8" style="text-align:center;color:var(--muted);padding:28px 12px;">' +
+                  'No tickets found.</td></tr></tbody>';
+        }
+
+        table.innerHTML = thead + tbody;
+
+        table.querySelectorAll('.vo-sort-btn').forEach(function (btn) {
+          btn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            voSetSort(btn.dataset.vocol);
+          });
+        });
+
+        table.querySelectorAll('tbody tr[data-void]').forEach(function (row) {
+          row.addEventListener('click', function () {
+            voModalOpen(row.dataset.void);
+          });
+        });
+      })
+      .catch(function (err) {
+        table.innerHTML = thead +
+          '<tbody><tr><td colspan="8" style="text-align:center;color:var(--danger);padding:28px 12px;">' +
+          voEscape('Could not load tickets: ' + err.message) + '</td></tr></tbody>';
+      });
+    }
+
+    function voRenderFilters() {
+      var container = document.getElementById('voFilterPills');
+      if (!container) return;
+      container.innerHTML = VO_FILTERS.map(function (f) {
+        return '<button type="button" class="' + (f === voActiveFilter ? 'active' : '') +
+               '" data-vof="' + voEscape(f) + '">' + voEscape(f) + '</button>';
+      }).join('');
+      container.querySelectorAll('button').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          voActiveFilter = btn.dataset.vof;
+          document.getElementById('voFilterChip').textContent = voActiveFilter;
+          var filterBtn = document.getElementById('voFilterBtn');
+          filterBtn.classList.toggle('active', voActiveFilter !== 'All');
+          voClosePanel();
+          voRenderFilters();
+          voRender();
+        });
+      });
+    }
+
+    function voSortHeader(col) {
+      var active = voSortCol === col.key;
+      var ariaSort = active
+        ? (voSortDir === 'asc' ? 'ascending' : 'descending')
+        : 'none';
+      return '<th scope="col"><button type="button" class="vo-sort-btn' +
+        (active ? ' active' : '') + '" data-vocol="' + voEscape(col.key) +
+        '" aria-sort="' + ariaSort + '">' + voEscape(col.label) +
+        '<span class="vo-sort-arrows" aria-hidden="true">' +
+        '<svg class="vo-arrow-up"   viewBox="0 0 10 10"><path d="M5 2l4 6H1z" fill="currentColor"/></svg>' +
+        '<svg class="vo-arrow-down" viewBox="0 0 10 10"><path d="M5 8L1 2h8z"  fill="currentColor"/></svg>' +
+        '</span></button></th>';
+    }
+
+    /* ── filter panel open / close ─────────────────────────── */
+
+    function voTogglePanel() {
+      var panel = document.getElementById('voFilterPanel');
+      var btn   = document.getElementById('voFilterBtn');
+      if (!panel) return;
+      var opening = panel.hidden;
+      panel.hidden = !opening;
+      btn.setAttribute('aria-expanded', opening ? 'true' : 'false');
+      btn.classList.toggle('active', opening || voActiveFilter !== 'All');
+    }
+
+    function voClosePanel() {
+      var panel = document.getElementById('voFilterPanel');
+      var btn   = document.getElementById('voFilterBtn');
+      if (!panel || panel.hidden) return;
+      panel.hidden = true;
+      btn.setAttribute('aria-expanded', 'false');
+      btn.classList.toggle('active', voActiveFilter !== 'All');
+    }
+
+    /* ── init ──────────────────────────────────────────────── */
+
+    function voInit() {
+      var searchEl  = document.getElementById('voSearch');
+      var filterBtn = document.getElementById('voFilterBtn');
+      if (!searchEl || !filterBtn) return;
+
+      // Debounce search input so we don't fire a request on every keystroke
+      searchEl.addEventListener('input', function () {
+        clearTimeout(voRenderTimer);
+        voRenderTimer = setTimeout(voRender, 300);
+      });
+
+      filterBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        voTogglePanel();
+      });
+
+      document.addEventListener('click', function (e) {
+        if (!e.target.closest('.vo-filter-wrap')) voClosePanel();
+      });
+
+      // Refresh when the Tickets nav tab is clicked
+      document.querySelectorAll('.nav-item[data-module]').forEach(function (item) {
+        item.addEventListener('click', function () {
+          if (item.dataset.module === 'tickets') voRender();
+        });
+      });
+
+      // Refresh after a ticket is submitted (give the server a moment)
+      var form = document.getElementById('ticketForm');
+      if (form) {
+        form.addEventListener('submit', function () {
+          setTimeout(voRender, 600);
+        });
+      }
+
+      // Refresh when the Employee tab is clicked
+      document.querySelectorAll('[data-ticket-view]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          if (btn.dataset.ticketView === 'employee') voRender();
+        });
+      });
+
+      // Poll every 30 s to catch tickets submitted from other computers on the LAN
+      setInterval(voRender, 30000);
+
+      voRenderFilters();
+      voRender();
+    }
+
+    // Defer until DOM is ready (script runs at end of body, so synchronous is fine,
+    // but wrapping in a zero-timeout guarantees all other init listeners have fired first)
+    setTimeout(voInit, 0);
+
+    /* ── Read-only ticket detail modal ─────────────────────── */
+
+    var voModalPreviousFocus = null;
+    var voModalActiveTab     = 'details';
+
+    var FOCUSABLE = [
+      'a[href]', 'button:not([disabled])',
+      'textarea:not([disabled])', 'input:not([disabled])',
+      'select:not([disabled])', '[tabindex]:not([tabindex="-1"])'
+    ].join(', ');
+
+    function voFmtTimestamp(v) {
+      if (!v) return '';
+      var d   = new Date(v);
+      var day = d.toLocaleString(undefined, { day: '2-digit', month: 'short', year: 'numeric' });
+      var t   = d.toLocaleString(undefined, { hour: '2-digit', minute: '2-digit', hour12: false });
+      return day + ' \u2022 ' + t;
+    }
+
+    function voInfoField(label, valueHtml) {
+      return '<div class="vo-info-field"><dt>' + label + '</dt><dd>' + valueHtml + '</dd></div>';
+    }
+
+    function voRenderDetails(ticket) {
+      // Use the server-provided URL; screenshotDataUrl no longer exists
+      var screenshot = ticket.screenshotUrl
+        ? '<img class="vo-screenshot" src="' + voEscape(ticket.screenshotUrl) + '" alt="Ticket screenshot" />'
+        : '<p class="small-note">No screenshot uploaded.</p>';
+
+      return '<div class="vo-detail-cards">' +
+
+        '<section class="vo-detail-card">' +
+        '<h3 class="vo-detail-card__title">Ticket Information</h3>' +
+        '<dl class="vo-info-grid">' +
+        voInfoField('Ticket Number',  voEscape(ticket.ticketNumber)) +
+        voInfoField('Employee',       voEscape(ticket.employeeName)) +
+        voInfoField('Department',     voEscape(ticket.department)) +
+        voInfoField('Email', voEscape(ticket.contact || '')) +
+        voInfoField('Computer Name',  voEscape(ticket.computerName)) +
+        voInfoField('Category',       voEscape(ticket.category)) +
+        voInfoField('Priority',
+          '<span class="badge priority-' + voSlug(ticket.priority) + '">' +
+          voEscape(ticket.priority) + '</span>') +
+        voInfoField('Status',
+          '<span class="badge status-' + voSlug(ticket.status) + '">' +
+          voEscape(ticket.status) + '</span>') +
+        voInfoField('Submitted',      voEscape(voFmtDate(ticket.createdDate))) +
+        voInfoField('Last Updated',   voEscape(voFmtDate(ticket.updatedDate || ''))) +
+        (ticket.assignedTechnician
+          ? voInfoField('Assigned Technician', voEscape(ticket.assignedTechnician))
+          : '') +
+        (ticket.adminNotes
+          ? voInfoField('Admin Notes', voEscape(ticket.adminNotes))
+          : '') +
+        '</dl></section>' +
+
+        '<section class="vo-detail-card">' +
+        '<h3 class="vo-detail-card__title">Issue Description</h3>' +
+        '<div class="vo-description-box">' + voEscape(ticket.description) + '</div>' +
+        screenshot +
+        '</section>' +
+
+        '</div>';
+    }
+
+    function voRenderTimeline(ticket) {
+      var logs = (ticket.logs || []).slice();
+      if (!logs.length) {
+        return '<p class="timeline-empty">No activity recorded for this ticket yet.</p>';
+      }
+
+      var icons = {
+        created:    '<path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+        assigned:   '<path d="M16 11V7a4 4 0 00-8 0v4M5 11h14v8H5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>',
+        status:     '<path d="M4 6h16M4 12h10M4 18h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+        resolved:   '<path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>',
+        note:       '<path d="M21 15a4 4 0 01-4 4H8l-5 3V7a4 4 0 014-4h10a4 4 0 014 4z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>',
+        attachment: '<path d="M16 8l-8 8a4 4 0 106-6l7-7a2 2 0 103 3l-7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>',
+        escalated:  '<path d="M12 9v4m0 4h.01M10.3 4.3l-7.4 12.8A2 2 0 004.6 20h14.8a2 2 0 001.7-2.9L13.7 4.3a2 2 0 00-3.4 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>',
+        'default':  '<circle cx="12" cy="12" r="4" fill="currentColor"/>'
+      };
+
+      function getMeta(log) {
+        var action    = String(log.action    || '').toLowerCase();
+        var newStatus = String(log.newStatus || '').toLowerCase();
+        if (action.indexOf('created')  !== -1) return { tone: 'green',  title: 'Ticket Created', icon: 'created'    };
+        if (action.indexOf('assigned') !== -1) return { tone: 'purple', title: 'Assigned',        icon: 'assigned'   };
+        if (action.indexOf('status')   !== -1) return { tone: 'orange', title: 'Status Changed',  icon: 'status'     };
+        if (action.indexOf('note')     !== -1) return { tone: 'blue',   title: 'Note Added',      icon: 'note'       };
+        if (action.indexOf('attach')   !== -1) return { tone: 'gray',   title: log.action,        icon: 'attachment' };
+        if (action.indexOf('escalat')  !== -1) return { tone: 'red',    title: log.action,        icon: 'escalated'  };
+        if (newStatus === 'resolved' || newStatus === 'closed')
+                                               return { tone: 'green',  title: log.action,        icon: 'resolved'   };
+        return                                        { tone: 'gray',   title: log.action || 'Event', icon: 'default' };
+      }
+
+      function getDesc(log) {
+        var action = String(log.action || '').toLowerCase();
+        var oldSt  = log.oldStatus || log.old_status || '';
+        var newSt  = log.newStatus || log.new_status || '';
+        if (action.indexOf('status') !== -1 && oldSt && newSt) {
+          return oldSt + ' \u2192 ' + newSt;
+        }
+        return log.notes || '';
+      }
+
+      return '<div class="vo-timeline" role="list">' +
+        logs.map(function (log, i) {
+          var isLast = (i === logs.length - 1);
+          var meta   = getMeta(log);
+          var desc   = getDesc(log);
+          var svg    = icons[meta.icon] || icons['default'];
+          // logToApi() returns the timestamp as 'dateTime'
+          var ts = log.dateTime || '';
+          return '<article class="timeline-item timeline-item--' + meta.tone + (isLast ? ' timeline-item--last' : '') + '">' +
+            '<div class="timeline-item__track" aria-hidden="true">' +
+              '<div class="timeline-item__icon">' +
+                '<svg class="timeline-item__svg" viewBox="0 0 24 24" fill="none" aria-hidden="true">' + svg + '</svg>' +
+              '</div>' +
+              (isLast ? '' : '<div class="timeline-item__line"></div>') +
+            '</div>' +
+            '<div class="timeline-item__card">' +
+              '<h4 class="timeline-item__title">'  + voEscape(meta.title)            + '</h4>' +
+              '<p class="timeline-item__meta">'    + voEscape(voFmtTimestamp(ts))    + '</p>' +
+              '<p class="timeline-item__user">'    + voEscape(log.admin || 'System') + '</p>' +
+              (desc ? '<p class="timeline-item__desc">' + voEscape(desc) + '</p>' : '') +
+            '</div>' +
+          '</article>';
+        }).join('') +
+        '</div>';
+    }
+
+    function voModalSetTab(tabName) {
+      voModalActiveTab = tabName;
+      ['details', 'activity'].forEach(function (name) {
+        var tab   = document.querySelector('.vo-modal-tab[data-votab="' + name + '"]');
+        var panel = document.getElementById(
+          name === 'details' ? 'voModalPanelDetails' : 'voModalPanelActivity');
+        var active = name === tabName;
+        if (tab)   { tab.classList.toggle('active', active);
+                     tab.setAttribute('aria-selected', active ? 'true' : 'false');
+                     tab.tabIndex = active ? 0 : -1; }
+        if (panel) { panel.classList.toggle('active', active);
+                     panel.hidden = !active; }
+      });
+    }
+
+    function voModalOpen(ticketId) {
+      // Show modal immediately with loading state
+      var modal = document.getElementById('voModal');
+      voModalPreviousFocus = document.activeElement;
+
+      document.getElementById('voModalNumber').textContent = 'Loading\u2026';
+      document.getElementById('voModalTitle').textContent  = 'Ticket Details';
+      document.getElementById('voModalBadges').innerHTML   = '';
+      document.getElementById('voModalPanelDetails').innerHTML  =
+        '<p style="color:var(--muted);padding:24px;">Loading ticket\u2026</p>';
+      document.getElementById('voModalPanelActivity').innerHTML = '';
+      voModalSetTab('details');
+
+      modal.hidden = false;
+      document.body.classList.add('modal-open');
+      document.getElementById('voModalClose').focus();
+
+      // Fetch full ticket + logs from the backend
+      fetch('api/tickets/get.php?id=' + encodeURIComponent(ticketId), {
+        cache: 'no-store',
+        credentials: 'same-origin'
+      })
+      .then(function (res) { return res.json(); })
+      .then(function (json) {
+        if (!json.success) throw new Error(json.message || 'Ticket not found.');
+        var ticket = json.data;
+
+        document.getElementById('voModalNumber').textContent =
+          'Ticket \u2022 ' + ticket.ticketNumber;
+        document.getElementById('voModalTitle').textContent =
+          ticket.category || 'IT Support Request';
+        document.getElementById('voModalBadges').innerHTML =
+          '<span class="badge status-'   + voSlug(ticket.status)   + '">' + voEscape(ticket.status)   + '</span>' +
+          '<span class="badge priority-' + voSlug(ticket.priority) + '">' + voEscape(ticket.priority) + '</span>';
+
+        document.getElementById('voModalPanelDetails').innerHTML  = voRenderDetails(ticket);
+        document.getElementById('voModalPanelActivity').innerHTML = voRenderTimeline(ticket);
+        voModalSetTab('details');
+      })
+      .catch(function (err) {
+        document.getElementById('voModalPanelDetails').innerHTML =
+          '<p style="color:var(--danger);padding:24px;">\u26A0 ' + voEscape(err.message) + '</p>';
+      });
+    }
+
+    function voModalClose() {
+      var modal = document.getElementById('voModal');
+      if (!modal || modal.hidden) return;
+      modal.hidden = true;
+      document.body.classList.remove('modal-open');
+      if (voModalPreviousFocus && typeof voModalPreviousFocus.focus === 'function') {
+        voModalPreviousFocus.focus();
+      }
+      voModalPreviousFocus = null;
+    }
+
+    function voModalTrapFocus(e) {
+      var dialog = document.getElementById('voModalDialog');
+      if (!dialog) return;
+      var focusable = Array.prototype.slice.call(dialog.querySelectorAll(FOCUSABLE))
+        .filter(function (el) { return el.offsetParent !== null; });
+      if (!focusable.length) return;
+      var first = focusable[0], last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault(); last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault(); first.focus();
+      }
+    }
+
+    // wire modal controls once DOM is ready
+    setTimeout(function () {
+      var modal  = document.getElementById('voModal');
+      var close  = document.getElementById('voModalClose');
+      var bkdrop = document.getElementById('voModalBackdrop');
+      if (!modal) return;
+
+      close.addEventListener('click',   voModalClose);
+      bkdrop.addEventListener('click',  voModalClose);
+
+      modal.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') { e.preventDefault(); voModalClose(); return; }
+        if (e.key === 'Tab')    { voModalTrapFocus(e); }
+      });
+
+      // tab switching
+      modal.querySelectorAll('.vo-modal-tab[data-votab]').forEach(function (tab) {
+        tab.addEventListener('click', function () {
+          voModalSetTab(tab.dataset.votab);
+          tab.focus();
+        });
+        tab.addEventListener('keydown', function (e) {
+          var tabs = Array.prototype.slice.call(
+            modal.querySelectorAll('.vo-modal-tab[data-votab]'));
+          var idx = tabs.indexOf(tab);
+          if (e.key === 'ArrowRight') { e.preventDefault(); tabs[(idx + 1) % tabs.length].click(); }
+          if (e.key === 'ArrowLeft')  { e.preventDefault(); tabs[(idx - 1 + tabs.length) % tabs.length].click(); }
+        });
+      });
+    }, 0);
+
+  }());
+
+  // 👤 Reverse-concatenate FULL NAME
+  function splitFullName(fullName) {
+    if (!fullName) {
+      return {
+        firstName: '',
+        middleName: '',
+        lastName: '',
+        suffix: ''
+      };
+    }
+
+    fullName = String(fullName)
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    if (!fullName) {
+      return {
+        firstName: '',
+        middleName: '',
+        lastName: '',
+        suffix: ''
+      };
+    }
+
+    const suffixes = new Set([
+      'JR', 'JR.', 'SR', 'SR.',
+      'II', 'III', 'IV', 'V'
+    ]);
+
+    const compoundSurnamePrefixes = new Set([
+      'DE', 'DEL', 'DELA', 'DELOS', 'DE LAS', 'DE LOS',
+      'SAN', 'SANTA', 'SANTO'
+    ]);
+
+    let lastName = '';
+    let remaining = fullName;
+    let suffix = '';
+
+    // -----------------------------
+    // 1. Split comma format first
+    // -----------------------------
+    if (fullName.includes(',')) {
+      const parts = fullName.split(',');
+      lastName = parts[0].trim();
+      remaining = parts.slice(1).join(' ').trim();
+    }
+
+    // Extract suffix from surname part
+    const surnameSuffixPattern =
+      /\s+(JR\.?|SR\.?|II|III|IV|V)$/i;
+
+    const surnameMatch =
+      lastName.match(surnameSuffixPattern);
+
+    if (surnameMatch) {
+
+      suffix = surnameMatch[1];
+
+      lastName = lastName
+        .replace(surnameSuffixPattern, '')
+        .trim();
+    }
+
+    let tokens = remaining.split(' ').filter(Boolean);
+
+    // -----------------------------
+    // 2. Remove suffix if exists
+    // -----------------------------
+
+    const suffixIndex = tokens.findIndex(token =>
+      suffixes.has(token.toUpperCase())
+    );
+
+    if (suffixIndex !== -1) {
+
+      suffix = tokens[suffixIndex];
+
+      // remove suffix from name tokens
+      tokens.splice(suffixIndex, 1);
+    }
+
+    // -----------------------------
+    // 3. If lastName still empty, fallback logic
+    // -----------------------------
+    if (!lastName && tokens.length > 0) {
+      lastName = tokens.pop(); // last token becomes surname
+    }
+
+    // -----------------------------
+    // 4. Protect compound surnames in lastName
+    // -----------------------------
+    const lastTokens = lastName.split(' ');
+    if (lastTokens.length > 1) {
+      const first = lastTokens[0].toUpperCase();
+      if (compoundSurnamePrefixes.has(first)) {
+        // keep full compound surname intact
+        lastName = lastTokens.join(' ');
+      }
+    }
+
+    // -----------------------------
+    // 5. MAIN RULE: distribute remaining tokens
+    // -----------------------------
+    let firstName = '';
+    let middleName = '';
+
+    const compoundSurnamePatterns = [
+      'DELA CRUZ',
+      'DE LA CRUZ',
+      'DE LOS SANTOS',
+      'DE LOS REYES',
+      'DE LA ROSA',
+      'SAN JOSE',
+      'SANTA CRUZ',
+      'DEL ROSARIO'
+    ];
+
+    // rebuild string for pattern search
+    let temp = tokens.slice();
+    let joined = temp.join(' ').toUpperCase();
+
+    let foundCompound = '';
+    let foundIndex = -1;
+
+    // ------------------------------
+    // 1. Detect compound surname (from RIGHT priority)
+    // ------------------------------
+    for (let pattern of compoundSurnamePatterns) {
+
+      let idx = joined.lastIndexOf(pattern);
+
+      if (idx !== -1) {
+        foundCompound = pattern;
+
+        // convert back to token index
+        let before = joined.substring(0, idx).trim();
+        let beforeTokens = before ? before.split(/\s+/) : [];
+
+        firstName = beforeTokens.join(' ').trim();
+        middleName = pattern.trim();
+
+        foundIndex = idx;
+        break;
+      }
+    }
+
+    // ------------------------------
+    // 2. If no compound surname found → fallback rule
+    // ------------------------------
+    if (!foundCompound) {
+
+      const n = tokens.length;
+
+      if (n === 1) {
+        firstName = tokens[0];
+      }
+
+      else if (n === 2) {
+        firstName = tokens[0];
+        middleName = tokens[1];
+      }
+
+      else if (n === 3) {
+        firstName = tokens.slice(0, 2).join(' ');
+        middleName = tokens[2];
+      }
+
+      else if (n >= 4 && n <= 6) {
+        firstName = tokens.slice(0, n - 1).join(' ');
+        middleName = tokens[n - 1];
+      }
+
+      else if (n > 0) {
+        firstName = tokens.slice(0, n - 1).join(' ');
+        middleName = tokens[n - 1];
+      }
+    }
+
+    return {
+      firstName: String(firstName || '').trim(),
+      middleName: String(middleName || '').trim(),
+      lastName: String(lastName || '').trim(),
+      suffix: String(suffix || '').trim()
+    };
+  }
+
+  function getCellValue(value) {
+
+    if (value == null) return '';
+
+    // Rich text
+    if (value.richText) {
+      return value.richText
+        .map(rt => rt.text)
+        .join('');
+    }
+
+    // Formula result
+    if (value.formula) {
+      return value.result || '';
+    }
+
+    // Hyperlink/text object
+    if (value.text) {
+      return value.text;
+    }
+
+    // Date object
+    if (value instanceof Date) {
+      return value;
+    }
+
+    return value;
+  }
+
+  // ✨ Clean spaces + remove double spaces
+  function cleanName(value) {
+
+    return String(value || '')
+      .replace(/\s+/g, ' ')
+      .replace(/\s+,/g, ',')
+      .trim();
+  }
+
+  function normalizeHeaderLabel(value) {
+    return String(value || '')
+      .replace(/[\r\n]+/g, ' ')
+      .replace(/&/g, ' AND ')
+      .toUpperCase()
+      .replace(/[^A-Z0-9]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function getHeaderKeys(value) {
+    const raw = String(value || '').trim().toUpperCase();
+    const normalized = normalizeHeaderLabel(value);
+    const compact = normalized.replace(/\s+/g, '');
+
+    return [raw, normalized, compact].filter(Boolean);
+  }
+
+  function rowHasHeader(row, ...possibleHeaders) {
+    const wanted = new Set(
+      possibleHeaders.flatMap(header => getHeaderKeys(header))
+    );
+
+    return row.some(cell =>
+      getHeaderKeys(cell).some(key => wanted.has(key))
+    );
+  }
+
+  function isGroupedNameColumn(header) {
+    return [
+      'LASTNAME',
+      'LAST NAME',
+      'FIRSTNAME',
+      'FIRST NAME',
+      'MIDDLE NAME',
+      'MIDDLENAME',
+      'SUFFIX'
+    ].includes(normalizeHeaderLabel(header));
+  }
+
+  function buildHeadersFromRows(rows, headerIndex) {
+    const topRow = rows[headerIndex] || [];
+    const nextRow = rows[headerIndex + 1] || [];
+    const hasGroupedHeader =
+      rowHasHeader(topRow, 'PAYOR', 'INSURED') &&
+      rowHasHeader(nextRow, 'LASTNAME', 'FIRSTNAME', 'MIDDLE NAME', 'SUFFIX');
+
+    if (!hasGroupedHeader) {
+      return {
+        headers: topRow.map(h => String(h || '').trim()),
+        dataStartIndex: headerIndex + 1
+      };
+    }
+
+    const maxColumns = Math.max(topRow.length, nextRow.length);
+    const headers = [];
+    let activeGroup = '';
+
+    for (let i = 0; i < maxColumns; i += 1) {
+      const topLabel = String(topRow[i] || '').trim();
+      const nextLabel = String(nextRow[i] || '').trim();
+      const topKey = normalizeHeaderLabel(topLabel);
+
+      if (topKey === 'PAYOR' || topKey === 'INSURED') {
+        activeGroup = topKey;
+      } else if (topLabel) {
+        activeGroup = '';
+      }
+
+      if (activeGroup && isGroupedNameColumn(nextLabel)) {
+        headers[i] = `${activeGroup} ${nextLabel}`.trim();
+      } else {
+        headers[i] = nextLabel || topLabel;
+      }
+    }
+
+    return {
+      headers,
+      dataStartIndex: headerIndex + 2
+    };
+  }
+
+  async function handleFile(e) {
+
+    const file = e.target.files[0];
+
+    if (!file) return;
+
+    convertedData = [];
+    originalWorkbook = null;
+    previewPage = 1;
+    clearValidationIssues();
+    setSummary(0, 0);
+    fileName.textContent = file.name;
+    setStatus('Reading workbook', '');
+    renderEmptyPreview('Reading workbook', 'The preview will appear after conversion finishes.');
+
+    try {
+      originalFileBuffer = await file.arrayBuffer();
+
+      // Load workbook with styles preserved
+      originalWorkbook = new ExcelJS.Workbook();
+
+      await originalWorkbook.xlsx.load(originalFileBuffer);
+
+    const worksheet =
+      originalWorkbook.worksheets[0];
+
+    const allRows = [];
+
+    worksheet.eachRow((row) => {
+
+      const values = [];
+
+      row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+        values[colNumber - 1] = getCellValue(cell.value);
+      });
+
+      allRows.push(values);
+    });
+
+    // 🔍 Detect header row
+    const headerIndex = allRows.findIndex(row =>
+      rowHasHeader(
+        row,
+        'PAYOR',
+        'INSURED',
+        'PAYOR / INSURED',
+        'PAYOR NAME',
+        'MEMBER NAME',
+        'FULL NAME',
+        'NAME',
+        'EMPLOYEE CODE OR SSS ID',
+        'EMPLOYEE CODE / SSS ID',
+        'EMPLOYEE CODE',
+        'EMPLOYEE NUMBER',
+        'SSS ID',
+        'PAYOR FIRST NAME',
+        'FIRST NAME',
+        'FIRSTNAME',
+        'MEMBERSHIP FEE',
+        'MEMBERSHIP FEE PESO'
+      )
+    );
+
+    if (headerIndex === -1) {
+      setStatus('Unsupported format', 'error');
+      renderEmptyPreview('Unsupported file format', 'No recognizable payor, insured, name, or employee headers were found.');
+      return;
+    }
+
+    const headerInfo =
+      buildHeadersFromRows(allRows, headerIndex);
+
+    const headers =
+      headerInfo.headers;
+
+    const dataRows =
+      allRows.slice(headerInfo.dataStartIndex);
+
+    // ✅ Dynamic header map
+    const headerMap = {};
+
+    headers.forEach((h, i) => {
+
+      getHeaderKeys(h).forEach(key => {
+        if (headerMap[key] === undefined) {
+          headerMap[key] = i;
+        }
+      });
+    });
+
+    // ✅ Flexible getter
+    function get(row, ...possibleHeaders) {
+
+      for (const header of possibleHeaders) {
+
+        const index = getHeaderKeys(header)
+          .map(key => headerMap[key])
+          .find(value => value !== undefined);
+
+        if (
+          index !== undefined &&
+          row[index] !== undefined
+        ) {
+          return row[index];
+        }
+      }
+
+      return '';
+    }
+
+    const isHeadOffice =
+      rowHasHeader(
+        headers,
+        'EMPLOYEE CODE OR SSS ID',
+        'EMPLOYEE CODE / SSS ID',
+        'EMPLOYEE CODE',
+        'EMPLOYEE NUMBER',
+        'EMPLOYEE NO',
+        'EMP NO',
+        'SSS ID',
+        'SSS NO'
+      );
+
+    const isCenterFormat =
+      rowHasHeader(
+        headers,
+        'PAYOR / INSURED',
+        'PAYOR NAME',
+        'MEMBER NAME',
+        'PAYOR',
+        'INSURED',
+        'FULL NAME',
+        'NAME'
+      );
+
+    const normalized = [];
+
+    for (let row of dataRows) {
+
+      const isEmpty = row.every(cell => {
+        const val = getCellValue(cell);
+        return String(val || '').trim() === '';
+      });
+
+      if (isEmpty) continue;
+
+      let obj = {};
+
+    if (isHeadOffice) {
+
+      obj = {
+
+        'Company / Deployment':
+          get(row,
+            'AREA OF DEPLOYMENT',
+            'AREA/DEPLOYMENT',
+            'AREA',
+            'COMPANY / DEPLOYMENT',
+            'COMPANY DEPLOYMENT',
+            'DEPLOYMENT',
+            'COMPANY'),
+
+        'Payor First Name':
+          get(row,
+            'PAYOR FIRSTNAME',
+            'FIRSTNAME',
+            'PAYOR FIRST NAME',
+            'FIRST NAME',
+            'GIVEN NAME',
+            'GIVEN NAMES'),
+
+        'Payor Middle Name':
+          get(row,
+            'PAYOR MIDDLE NAME',
+            'MIDDLE NAME',
+            'PAYOR MIDDLENAME',
+            'MIDDLENAME',
+            'MIDDLE INITIAL',
+            'MI'),
+
+        'Payor Last Name':
+          get(row,
+            'PAYOR LASTNAME',
+            'LASTNAME',
+            'PAYOR LAST NAME',
+            'LAST NAME',
+            'SURNAME',
+            'FAMILY NAME'),
+
+        'Payor Suffix':
+          get(row,
+            'PAYOR SUFFIX',
+            'SUFFIX',
+            'PAYOR SUFFIX'),
+
+        // ✅ Copy payor to member if no member columns exist
+        'Member First Name':
+          get(row,
+            'MEMBER FIRST NAME',
+            'INSURED FIRSTNAME',
+            'INSURED FIRST NAME',
+            'DEPENDENT FIRST NAME') ||
+          get(row,
+            'FIRSTNAME',
+            'FIRST NAME',
+            'GIVEN NAME',
+            'GIVEN NAMES'),
+
+        'Member Middle Name':
+          get(row,
+            'MEMBER MIDDLE NAME',
+            'INSURED MIDDLE NAME',
+            'INSURED MIDDLENAME',
+            'INSURED MIDDLE NAME',
+            'DEPENDENT MIDDLE NAME') ||
+          get(row,
+            'MIDDLE NAME',
+            'MIDDLE INITIAL',
+            'MI'),
+
+        'Member Last Name':
+          get(row,
+            'MEMBER LAST NAME',
+            'INSURED LASTNAME',
+            'INSURED LAST NAME',
+            'DEPENDENT LAST NAME') ||
+          get(row,
+            'LASTNAME',
+            'LAST NAME',
+            'SURNAME',
+            'FAMILY NAME'),
+
+        'Member Suffix':
+          get(row,
+            'MEMBER SUFFIX',
+            'INSURED SUFFIX',
+            'INSURED SUFFIX') ||
+          get(row,
+            'SUFFIX'),
+
+        'Birth Date':
+          get(row,
+            'DATE OF BIRTH',
+            'BIRTH DATE',
+            'BIRTHDATE',
+            'DOB',
+            'DATE BIRTH',
+            'BIRTHDAY',
+            'DATE OF BIRTH (MM/DD/YYYY)',
+            'DATE OF BIRTH (DD/MM/YYYY)',
+            'DOB'),
+
+        'Privilege': 'N',
+
+        'Sex':
+          get(row,
+            'GENDER',
+            'SEX') || 'F',
+
+        'Civil Status':
+          get(row,
+            'CIVIL STATUS',
+            'STATUS') || 'S',
+
+        'Contact Number':
+          get(row,
+            'CONTACT NO',
+            'CONTACT NO.',
+            'CONTACT NUMBER',
+            'MOBILE NUMBER',
+            'MOBILE NO',
+            'MOBILE NO.',
+            'CELLPHONE NUMBER',
+            'CP NUMBER'),
+
+        'Relation To Payor':
+          get(row,
+            'RELATION TO PAYOR',
+            'RELATIONSHIP',
+            'RELATION'),
+
+        'Occupation':
+          get(row,
+            'OCCUPATION'),
+
+        'Employee Number':
+          get(row,
+            'EMPLOYEE CODE OR SSS ID',
+            'EMPLOYEE CODE / SSS ID',
+            'EMPLOYEE CODE',
+            'EMPLOYEE NUMBER',
+            'EMPLOYEE NO',
+            'EMP NO',
+            'SSS NO',
+            'SSS ID'),
+
+        'Email Address':
+          get(row,
+            'EMAIL ADDRESS',
+            'EMAIL ADD',
+            'E-MAIL ADDRESS',
+            'E-MAIL',
+            'EMAIL'),
+
+        'Premium':
+          get(row,
+            'PLAN',
+            'PREMIUM')
+      };
+
+    } else if (isCenterFormat) {
+
+        // ✅ Flexible name detection
+        const payorName = cleanName(
+
+          get(row,
+            'PAYOR NAME',
+            'PAYOR / INSURED',
+            'PAYOR',
+            'FULL NAME',
+            'NAME')
+
+        );
+
+        // ✅ Split single full name
+        const memberName = cleanName(
+
+          get(row,
+            'MEMBER NAME',
+            'INSURED NAME',
+            'INSURED') ||
+          payorName
+
+        );
+
+        const parsedPayor =
+          splitFullName(payorName);
+
+        const parsedMember =
+          splitFullName(memberName);
+
+        obj = {
+
+          'Company / Deployment':
+            get(row,
+              'DEPLOYMENT',
+              'AREA OF DEPLOYMENT',
+              'COMPANY / DEPLOYMENT'),
+
+          'Payor First Name':
+            parsedPayor.firstName,
+
+          'Payor Middle Name':
+            parsedPayor.middleName,
+
+          'Payor Last Name':
+            parsedPayor.lastName,
+
+          'Payor Suffix':
+            parsedPayor.suffix,
+
+          // ✅ Copy same person to member
+          'Member First Name':
+            parsedMember.firstName,
+
+          'Member Middle Name':
+            parsedMember.middleName,
+
+          'Member Last Name':
+            parsedMember.lastName,
+
+          'Member Suffix':
+            parsedMember.suffix,
+
+          'Birth Date':
+            get(row,
+              'DATE OF BIRTH',
+              'BIRTH DATE',
+              'DOB'),
+
+          'Privilege': 'N',
+
+          'Sex':
+            get(row,
+              'GENDER',
+              'SEX') || 'F',
+
+          'Civil Status':
+            get(row,
+              'CIVIL STATUS',
+              'STATUS') || 'S',
+
+          'Contact Number':
+            get(row,
+              'CONTACT NO',
+              'CONTACT NUMBER',
+              'MOBILE NUMBER'),
+
+          'Relation To Payor':
+            get(row,
+              'RELATION TO PAYOR',
+              'RELATIONSHIP',
+              'RELATION'),
+
+          'Occupation':
+            get(row,
+              'POSITION',
+              'OCCUPATION'),
+
+          'Employee Number':
+            get(row,
+              'EMPLOYEE CODE',
+              'EMPLOYEE NUMBER',
+              'SSS ID'),
+
+          'Email Address':
+            get(row,
+              'EMAIL ADDRESS',
+              'EMAIL'),
+
+          'Premium':
+            get(row,
+              'MEMBERSHIP FEE',
+              'MEMBERSHIP FEE PESO',
+              'MEMBERSHIP FEE PHP',
+              'FEE',
+              'PLAN',
+              'PREMIUM')
+        };
+      } else {
+
+        headers.forEach((header, i) => {
+
+          const cleanHeader =
+            String(header || '')
+              .trim();
+
+          obj[cleanHeader] =
+            getCellValue(row[i]) || '';
+        });
+
+        obj = {
+          'Company / Deployment':
+            obj['Company / Deployment'] || '',
+
+          'Payor First Name':
+            obj['Payor First Name'] || '',
+
+          'Payor Middle Name':
+            obj['Payor Middle Name'] || '',
+
+          'Payor Last Name':
+            obj['Payor Last Name'] || '',
+
+          'Payor Suffix':
+            obj['Payor Suffix'] || '',
+
+          'Member First Name':
+            obj['Member First Name'] || '',
+
+          'Member Middle Name':
+            obj['Member Middle Name'] || '',
+
+          'Member Last Name':
+            obj['Member Last Name'] || '',
+
+          'Member Suffix':
+            obj['Member Suffix'] || '',
+
+          'Birth Date':
+            obj['Birth Date'] || '',
+
+          'Contact Number':
+            obj['Contact Number'] || '',
+
+          'Occupation':
+            obj['Occupation'] || '',
+
+          'Employee Number':
+            obj['Employee Number'] || '',
+
+          'Email Address':
+            obj['Email Address'] || '',
+
+          'Premium':
+            obj['Premium'] || '',
+
+          'Privilege':
+            obj['Privilege'] || '',
+
+          'Sex':
+            obj['Sex'] || '',
+
+          'Civil Status':
+            obj['Civil Status'] || ''
+        };
+      }
+
+      normalized.push(obj);
+    }
+
+    // ✨ Clean names like Excel TEXTJOIN + UPPER
+    function cleanName(value) {
+
+      return String(value || '')
+        .toUpperCase()              // convert to uppercase
+        .replace(/\s+/g, ' ')       // remove double/multiple spaces
+        .replace(/\s+,/g, ',')      // remove spaces before comma
+        .replace(/,\s*/g, ', ')     // ensure single space after comma
+        .trim();                    // remove leading/trailing spaces
+    }
+
+    // ✨ Build FULL NAME like Excel formula
+    function formatFullName(last, first, middle, suffix) {
+
+      last = cleanName(last);
+      first = cleanName(first);
+      middle = cleanName(middle);
+      suffix = cleanName(suffix);
+
+      // Add comma after lastname if missing
+      if (last && !last.endsWith(',')) {
+        last += ',';
+      }
+
+      return [
+        last,
+        first,
+        middle,
+        suffix
+      ]
+        .filter(v => v && v.trim() !== '')
+        .join(' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+
+    function cleanPremium(value) {
+      return String(value || '')
+        .replace(/\u20B1|PHP|,/gi, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+    }
+
+    convertedData = normalized.map(row => ({
+
+      'Company / Deployment':
+        cleanName(row['Company / Deployment']),
+
+      'Payor First Name':
+        cleanName(row['Payor First Name']),
+
+      'Payor Middle Name':
+        cleanName(row['Payor Middle Name']),
+
+      'Payor Last Name':
+        cleanName(row['Payor Last Name']),
+
+      'Payor Suffix':
+        cleanName(row['Payor Suffix']),
+
+      'Member First Name':
+        cleanName(row['Member First Name']),
+
+      'Member Middle Name':
+        cleanName(row['Member Middle Name']),
+
+      'Member Last Name':
+        cleanName(row['Member Last Name']),
+
+      'Member Suffix':
+        cleanName(row['Member Suffix']),
+
+      'Birth Date':
+        formatExcelDate(row['Birth Date']),
+
+      'Privilege':
+        validatePrivilege(row['Privilege']),
+
+      'Sex':
+        validateSex(row['Sex']),
+
+      'Civil Status':
+        validateCivilStatus(row['Civil Status']),
+
+      'Contact Number':
+        cleanName(row['Contact Number']),
+
+      'Relation To Payor':
+        cleanName(row['Relation To Payor'] || ''),
+
+      'Occupation':
+        cleanName(row['Occupation']),
+
+      'Employee Number':
+        cleanName(row['Employee Number']),
+
+      'Email Address':
+        cleanName(row['Email Address']),
+
+      'Premium':
+        cleanPremium(row['Premium'])
+
+    }));
+
+    validationIssues = validateNameFields(normalized);
+    renderValidationIssues();
+
+    const convertedColumns = convertedData[0] ? Object.keys(convertedData[0]).length : 0;
+    setSummary(convertedData.length, convertedColumns);
+    renderPreview(convertedData);
+    if (validationIssues.length) {
+      setStatus('Fix special characters', 'error');
+    } else {
+      setStatus(convertedData.length ? 'Ready to download' : 'No rows found', convertedData.length ? 'ready' : '');
+    }
+    } catch (err) {
+      console.error('Upload Error:', err);
+      convertedData = [];
+      originalWorkbook = null;
+      clearValidationIssues();
+      setSummary(0, 0);
+      setStatus('Conversion failed', 'error');
+      renderEmptyPreview('Conversion failed', err.message || 'The workbook could not be processed.');
+    }
+  }
+
+  function validateNameFields(rows) {
+    const issues = [];
+
+    rows.forEach((row, rowIndex) => {
+      nameFields.forEach(field => {
+        const value = String(row[field] || '');
+        const invalidCharacters = [...new Set(
+          Array.from(value).filter(character => !isAllowedNameCharacter(character))
+        )];
+
+        if (invalidCharacters.length) {
+          issues.push({
+            row: rowIndex + 1,
+            field,
+            value,
+            characters: invalidCharacters.join(' ')
+          });
+        }
+      });
+    });
+
+    return issues;
+  }
+
+  function isAllowedNameCharacter(character) {
+    return /^[A-ZÑ\s.'’,-]$/.test(character);
+  }
+
+  function isAllowedNameCharacter(character) {
+    return /^[A-Z\u00D1\s.'\u2019,-]$/u.test(character.toUpperCase());
+  }
+
+  function hasInvalidNameCharacter(value) {
+    return Array.from(String(value || ''))
+      .some(character => !isAllowedNameCharacter(character));
+  }
+
+  function renderPreviewCell(key, value) {
+    const text = String(value ?? '');
+
+    if (!nameFields.includes(key) || !hasInvalidNameCharacter(text)) {
+      return `<td>${escapeHtml(text)}</td>`;
+    }
+
+    const highlighted = Array.from(text)
+      .map(character => {
+        if (isAllowedNameCharacter(character)) {
+          return escapeHtml(character);
+        }
+
+        return `<span class="invalid-character">${escapeHtml(character)}</span>`;
+      })
+      .join('');
+
+    return `<td class="validation-cell" title="Special character found">${highlighted}</td>`;
+  }
+
+  // Date output required by IMS: yyyy-mm-dd.
+  function formatExcelDate(value) {
+
+    if (
+      value === '' ||
+      value === null ||
+      value === undefined
+    ) {
+      return '1900-01-01';
+    }
+
+    function pad2(part) {
+      return String(part).padStart(2, '0');
+    }
+
+    function normalizeYear(year) {
+      const number = Number(year);
+
+      if (String(year).length === 2) {
+        return number >= 30 ? 1900 + number : 2000 + number;
+      }
+
+      return number;
+    }
+
+    function buildDate(year, month, day) {
+      year = normalizeYear(year);
+      month = Number(month);
+      day = Number(day);
+
+      if (
+        !Number.isInteger(year) ||
+        !Number.isInteger(month) ||
+        !Number.isInteger(day) ||
+        year < 1900 ||
+        month < 1 ||
+        month > 12 ||
+        day < 1 ||
+        day > 31
+      ) {
+        return '';
+      }
+
+      const date = new Date(year, month - 1, day);
+
+      if (
+        date.getFullYear() !== year ||
+        date.getMonth() !== month - 1 ||
+        date.getDate() !== day
+      ) {
+        return '';
+      }
+
+      return `${year}-${pad2(month)}-${pad2(day)}`;
+    }
+
+    if (value instanceof Date) {
+      return buildDate(
+        value.getFullYear(),
+        value.getMonth() + 1,
+        value.getDate()
+      ) || '1900-01-01';
+    }
+
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      const excelEpoch = new Date(1899, 11, 30);
+      const jsDate = new Date(excelEpoch.getTime() + value * 86400000);
+
+      return buildDate(
+        jsDate.getFullYear(),
+        jsDate.getMonth() + 1,
+        jsDate.getDate()
+      ) || '1900-01-01';
+    }
+
+    const text = String(value).trim();
+    const isoMatch = text.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})$/);
+
+    if (isoMatch) {
+      return buildDate(isoMatch[1], isoMatch[2], isoMatch[3]) || '1900-01-01';
+    }
+
+    const phMatch = text.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{2,4})$/);
+
+    if (phMatch) {
+      const first = Number(phMatch[1]);
+      const second = Number(phMatch[2]);
+
+      if (first > 12) {
+        return buildDate(phMatch[3], phMatch[2], phMatch[1]) || '1900-01-01';
+      }
+
+      if (second > 12) {
+        return buildDate(phMatch[3], phMatch[1], phMatch[2]) || '1900-01-01';
+      }
+
+      return buildDate(phMatch[3], phMatch[2], phMatch[1]) || '1900-01-01';
+    }
+
+    const parsed = new Date(text);
+
+    if (!Number.isNaN(parsed.getTime())) {
+      return buildDate(
+        parsed.getFullYear(),
+        parsed.getMonth() + 1,
+        parsed.getDate()
+      ) || '1900-01-01';
+    }
+
+    return '1900-01-01';
+  }
+
+  // ✅ Privilege Validation
+  function validatePrivilege(value) {
+    const val = String(value || '').toUpperCase().trim();
+
+    if (val === 'Y' || val === 'N') {
+      return val;
+    }
+
+    return 'N'; // default
+  }
+
+  // ✅ Sex Validation
+  function validateSex(value) {
+
+    const val = String(value || '')
+      .trim()
+      .toUpperCase();
+
+    // Accept full words
+    if (val === 'MALE') {
+      return 'M';
+    }
+
+    if (val === 'FEMALE') {
+      return 'F';
+    }
+
+    // Accept already-correct values
+    if (val === 'M' || val === 'F') {
+      return val;
+    }
+
+    // Default
+    return 'F';
+  }
+
+  // ✅ Civil Status Validation
+  function validateCivilStatus(value) {
+
+    const allowed = [
+      'Single',
+      'Married',
+      'Divorced',
+      'Widowed',
+      'Separated'
+    ];
+
+    const normalized = String(value || '').trim();
+
+    const match = allowed.find(
+      status => status.toLowerCase() === normalized.toLowerCase()
+    );
+
+    return match || 'S'; // default
+  }
+
+  // 👁 Preview
+  function renderPreview(data) {
+    if (!data.length) {
+      updatePager(0, 0, 0);
+      renderEmptyPreview('No converted rows', 'The workbook was read, but no data rows were found below the header.');
+      return;
+    }
+
+    const pageCount = getPreviewPageCount();
+    previewPage = Math.min(Math.max(previewPage, 1), pageCount);
+    const startRow = (previewPage - 1) * previewPageSize;
+    const endRow = Math.min(startRow + previewPageSize, data.length);
+    const visibleRows = data.slice(startRow, endRow);
+
+    let html = '<table><tr>';
+
+    Object.keys(data[0]).forEach(key => {
+      html += `<th>${escapeHtml(key)}</th>`;
+    });
+
+    html += '</tr>';
+
+    visibleRows.forEach(row => {
+      html += '<tr>';
+
+      Object.entries(row).forEach(([key, val]) => {
+        html += renderPreviewCell(key, val);
+      });
+
+      html += '</tr>';
+    });
+
+    html += '</table>';
+
+    document.getElementById('preview').innerHTML = html;
+    updatePager(startRow, endRow, data.length);
+  }
+
+  // 💾 Download
+  async function downloadFormatted() {
+    try {
+      if (
+        !originalWorkbook ||
+        !convertedData ||
+        convertedData.length === 0
+      ) {
+        alert('Please upload a file first.');
+        return;
+      }
+
+      if (validationIssues.length) {
+        setStatus('Fix special characters', 'error');
+        renderValidationIssues();
+        alert('Please fix the special characters in name fields before downloading.');
+        return;
+      }
+
+      downloadButton.disabled = true;
+      setStatus('Preparing download', '');
+
+      // Remove existing formatted sheet
+      const existing =
+        originalWorkbook.getWorksheet('Formatted');
+
+      if (existing) {
+        originalWorkbook.removeWorksheet(existing.id);
+      }
+
+      // Create new sheet
+      const ws =
+        originalWorkbook.addWorksheet('Formatted');
+
+      ws.views = [
+        { state: 'frozen', ySplit: 1 }
+      ];
+      
+      // Headers
+      const headers =
+        Object.keys(convertedData[0]);
+
+      ws.addRow(headers);
+
+      // Data
+      convertedData.forEach(row => {
+        ws.addRow(Object.values(row));
+      });
+
+      // Style header
+      ws.getRow(1).eachCell(cell => {
+
+        cell.font = {
+          bold: true,
+          color: { argb: 'FFFFFFFF' }
+        };
+
+        cell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: '4472C4' }
+        };
+
+        cell.alignment = {
+          vertical: 'middle',
+          horizontal: 'center'
+        };
+      });
+
+      ws.columns.forEach((column, index) => {
+
+        let maxLength = 15;
+
+        ws.eachRow({ includeEmpty: true }, row => {
+
+          const cell = row.getCell(index + 1);
+
+          const len =
+            String(cell.value || '').length;
+
+          if (len > maxLength) {
+            maxLength = len;
+          }
+
+        });
+
+        column.width = maxLength + 3;
+
+      });
+
+      // Export
+      const buffer =
+        await originalWorkbook.xlsx.writeBuffer();
+
+      if (typeof saveAs !== 'function') {
+        throw new Error('FileSaver.js not loaded');
+      }
+
+      const blob = new Blob(
+        [buffer],
+        {
+          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        }
+      );
+
+      saveAs(
+        blob,
+        'main_encoding_format.xlsx'
+      );
+
+      downloadButton.disabled = false;
+      setStatus('Ready to download', 'ready');
+
+      } catch (err) {
+        console.error('Download Error:', err);
+        downloadButton.disabled = convertedData.length === 0;
+        setStatus('Download failed', 'error');
+        alert('Download failed: ' + err.message);
+      }
+    }
+  </script>
+</body>
+</html>
